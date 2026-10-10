@@ -9,9 +9,9 @@ import './style.css';
 const parameters = { night:false, autoRotate:false, shadows:true, rooftops:true };
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const viewContent = {
-  overview:{title:'Barangay Bucana',description:'Explore the hall and its attached upper wing, or enter to visit each room.',type:'EXTERIOR VIEW',index:'01 / 03',camera:[24,14,-28],target:[2.6,2.6,0]},
-  ground:{title:'First floor',description:'Public assistance, tanod office and Lupon mediation area.',type:'FIRST FLOOR · CUTAWAY',index:'02 / 03',camera:[13,13,-14],target:[0,1.2,0]},
-  session:{title:'Second floor',description:'Council session hall, captain’s office and attached upper wing.',type:'SECOND FLOOR · CUTAWAY',index:'03 / 03',camera:[15,16,-18],target:[2,3.9,0]},
+  overview:{camera:[24,14,-28],target:[2.6,2.6,0]},
+  ground:{camera:[13,13,-14],target:[0,1.2,0]},
+  session:{camera:[15,16,-18],target:[2,3.9,0]},
 };
 const container = document.querySelector('#scene-container');
 let activeView = 'overview';
@@ -113,10 +113,6 @@ function selectView(view,immediate=false) {
     button.classList.toggle('active',selected);
     button.setAttribute('aria-pressed',String(selected));
   });
-  document.querySelector('#view-title').textContent=content.title;
-  document.querySelector('#view-description').textContent=content.description;
-  document.querySelector('#view-type').textContent=content.type;
-  document.querySelector('#view-index').textContent=content.index;
   const destination=new THREE.Vector3(...content.camera);
   const target=new THREE.Vector3(...content.target);
   if(innerWidth<760) destination.sub(target).multiplyScalar(Math.max(1.35,innerHeight/innerWidth*1.1)).add(target);
@@ -137,10 +133,6 @@ function updateRoom(room) {
   const name=room?.name||'Entrance';
   const floor=room?.floor??walkthrough?.floor??0;
   document.querySelector('#room-status').textContent=`${floor===1?'Second':'First'} floor · ${name}`;
-  document.querySelector('#view-type').textContent='INDOOR WALKTHROUGH';
-  document.querySelector('#view-index').textContent=floor===1?'2F':'1F';
-  document.querySelector('#view-title').textContent=name;
-  document.querySelector('#view-description').textContent=room?.description||'Walk through the hall or choose a room to visit.';
   document.querySelectorAll('[data-room]').forEach(button=>{
     const selected=button.dataset.room===room?.id;
     button.classList.toggle('active',selected);

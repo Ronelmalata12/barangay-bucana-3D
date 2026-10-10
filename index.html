@@ -9,13 +9,9 @@
     <title>Barangay Bucana</title>
   </head>
   <body>
-    <main id="app">
+    <main id="app" aria-label="Barangay Bucana 3D hall">
       <div id="scene-container" aria-label="Interactive 3D model of Barangay Bucana"></div>
       <header class="topbar">
-        <div class="identity">
-          <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 14 16 6l11 8M8 14v12h16V14M13 26v-8h6v8M6 27h20" /></svg></div>
-          <div><h1>Barangay Bucana</h1><p>Nasugbu, Batangas <span class="title-separator">/</span><span class="identity-subtitle"> Interactive barangay hall</span></p></div>
-        </div>
         <div class="top-actions">
           <button id="lighting-toggle" class="lighting-toggle" type="button" aria-pressed="false" aria-label="Switch to night lighting"><span id="lighting-icon" aria-hidden="true">&#9728;</span><span id="lighting-label">Daylight</span><span class="toggle-track"><span></span></span></button>
           <button id="fullscreen-button" class="icon-button" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg></button>
@@ -51,7 +47,6 @@
         </section>
         <div class="settings-section"><button id="settings-toggle" type="button" aria-expanded="false" aria-controls="gui-container"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6M10 15v6" /></svg><span>View settings</span><span id="settings-chevron" aria-hidden="true">+</span></button><div id="gui-container" hidden></div></div>
       </aside>
-      <section class="view-caption" aria-live="polite" aria-atomic="true"><div class="caption-kicker"><span id="view-type">EXTERIOR VIEW</span><span class="caption-line"></span><span id="view-index">01 / 03</span></div><h2 id="view-title">Welcome to Barangay Bucana.</h2><p id="view-description">Explore the blue hall, then step inside to see the rooms on both floors.</p></section>
       <div id="crosshair" hidden aria-hidden="true"></div>
       <div id="object-controls" hidden>
         <button id="interact-button" type="button" disabled aria-pressed="false"><span class="interact-key" aria-hidden="true">E</span><span id="interact-label">Aim at a door or drawer</span></button>
