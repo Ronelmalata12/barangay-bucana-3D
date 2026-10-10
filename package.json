@@ -1,0 +1,10 @@
+{
+  "name": "barangay-bucana-3d-complex",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-contained procedural 3D architectural model of the Barangay Bucana Complex.",
+  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "dependencies": { "three": "0.180.0", "dat.gui": "0.7.9" },
+  "devDependencies": { "@types/three": "0.180.0", "vite": "^7.1.7" }
+}

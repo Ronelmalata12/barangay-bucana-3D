@@ -1,0 +1,74 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#3478c6" />
+    <meta name="description" content="Explore Barangay Bucana in Nasugbu, Batangas. Walk through its blue hall and photo-inspired raised upper wing, and visit the furnished captain’s office." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Barangay Bucana</title>
+  </head>
+  <body>
+    <main id="app">
+      <div id="scene-container" aria-label="Interactive 3D model of Barangay Bucana"></div>
+      <header class="topbar">
+        <div class="identity">
+          <div class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 14 16 6l11 8M8 14v12h16V14M13 26v-8h6v8M6 27h20" /></svg></div>
+          <div><h1>Barangay Bucana</h1><p>Nasugbu, Batangas <span class="title-separator">/</span><span class="identity-subtitle"> Interactive barangay hall</span></p></div>
+        </div>
+        <div class="top-actions">
+          <button id="lighting-toggle" class="lighting-toggle" type="button" aria-pressed="false" aria-label="Switch to night lighting"><span id="lighting-icon" aria-hidden="true">&#9728;</span><span id="lighting-label">Daylight</span><span class="toggle-track"><span></span></span></button>
+          <button id="fullscreen-button" class="icon-button" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg></button>
+        </div>
+      </header>
+      <aside class="explorer" aria-label="Explore Barangay Bucana">
+        <div class="panel-heading"><span class="eyebrow">EXPLORE THE HALL</span><span class="panel-count">2 floors</span></div>
+        <nav class="view-list" aria-label="Exterior and floor views">
+          <button class="view-button active" type="button" data-view="overview" aria-pressed="true"><span class="view-number">01</span><span><strong>Exterior</strong><small>Orbit the blue barangay hall</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" /></svg></button>
+          <button class="view-button" type="button" data-view="ground" aria-pressed="false"><span class="view-number">02</span><span><strong>First floor</strong><small>Assistance, tanod &amp; mediation</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V7l8-4 8 4v14M8 10h2m4 0h2M8 14h2m4 0h2M10 21v-4h4v4" /></svg></button>
+          <button class="view-button" type="button" data-view="session" aria-pressed="false"><span class="view-number">03</span><span><strong>Second floor</strong><small>Session hall &amp; captain's office</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18M5 9v12m14-12v12M3 21h18M12 3l9 6H3l9-6Zm-3 9v6m6-6v6" /></svg></button>
+        </nav>
+        <div class="entry-actions">
+          <button id="enter-button" class="primary-button" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3h7v18h-7M3 12h12m-4-4 4 4-4 4" /></svg><span>Enter barangay hall</span></button>
+          <button id="exit-button" class="primary-button" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3H4v18h7m10-9H9m4-4-4 4 4 4" /></svg><span>Exterior view</span></button>
+          <p class="entry-note">Step inside and explore every room.</p>
+        </div>
+        <section id="room-navigation" hidden aria-label="Room navigation">
+          <div class="room-current"><span class="status-dot" aria-hidden="true"></span><span id="room-status" aria-live="polite">Inside the hall</span></div>
+          <p class="room-floor">FIRST FLOOR</p>
+          <div class="room-list">
+            <button type="button" class="room-button" data-room="assistance"><span>Public Assistance</span><span aria-hidden="true">&#8599;</span></button>
+            <button type="button" class="room-button" data-room="tanod"><span>Tanod Office</span><span aria-hidden="true">&#8599;</span></button>
+            <button type="button" class="room-button" data-room="mediation"><span>Lupon Mediation</span><span aria-hidden="true">&#8599;</span></button>
+          </div>
+          <p class="room-floor">SECOND FLOOR</p>
+          <div class="room-list">
+            <button type="button" class="room-button" data-room="session"><span>Session Hall</span><span aria-hidden="true">&#8599;</span></button>
+            <button type="button" class="room-button" data-room="captain"><span>Captain's Office</span><span aria-hidden="true">&#8599;</span></button>
+            <button type="button" class="room-button" data-room="annex"><span>Left Upper Wing</span><span aria-hidden="true">&#8599;</span></button>
+          </div>
+          <div id="walk-instructions"><p id="walk-hint">Drag to look &middot; WASD to move</p><p class="desktop-walk-instructions">Click nearby doors and drawers, or aim and press <kbd>E</kbd>. <kbd>L</kbd> locks mouse look; <kbd>Esc</kbd> releases it.</p><p class="touch-walk-instructions">Drag to look. Tap nearby doors and drawers, or aim and tap Open. Use the arrows to walk.</p></div>
+        </section>
+        <div class="settings-section"><button id="settings-toggle" type="button" aria-expanded="false" aria-controls="gui-container"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6M10 15v6" /></svg><span>View settings</span><span id="settings-chevron" aria-hidden="true">+</span></button><div id="gui-container" hidden></div></div>
+      </aside>
+      <section class="view-caption" aria-live="polite" aria-atomic="true"><div class="caption-kicker"><span id="view-type">EXTERIOR VIEW</span><span class="caption-line"></span><span id="view-index">01 / 03</span></div><h2 id="view-title">Welcome to Barangay Bucana.</h2><p id="view-description">Explore the blue hall, then step inside to see the rooms on both floors.</p></section>
+      <div id="crosshair" hidden aria-hidden="true"></div>
+      <div id="object-controls" hidden>
+        <button id="interact-button" type="button" disabled aria-pressed="false"><span class="interact-key" aria-hidden="true">E</span><span id="interact-label">Aim at a door or drawer</span></button>
+        <p id="object-status" role="status" aria-live="polite"></p>
+      </div>
+      <div id="walk-controls" hidden aria-label="Walking controls">
+        <span class="walk-controls-label">WALK</span>
+        <button type="button" data-move="forward" aria-label="Walk forward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6" /></svg></button>
+        <button type="button" data-move="left" aria-label="Walk left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6" /></svg></button>
+        <button type="button" data-move="backward" aria-label="Walk backward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6" /></svg></button>
+        <button type="button" data-move="right" aria-label="Walk right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>
+      </div>
+      <div class="orientation"><div class="compass" aria-label="Camera orientation relative to model north"><span>N</span><svg id="compass-arrow" viewBox="0 0 60 60" aria-hidden="true"><path class="north-arrow" d="m30 9-8 25 8-4 8 4Z"/><path class="south-arrow" d="m30 51-8-17 8-4 8 4Z"/></svg></div><div class="scale-bar"><span id="scale-label">5 m</span><div id="scale-line"></div></div></div>
+      <footer class="bottom-bar"><div id="interaction-hints" class="interaction-hints"><span>Drag to orbit</span><span>Scroll to zoom</span><span>Right-drag to pan</span></div><div class="concept-note">Interactive architectural model</div></footer>
+      <div id="loading-screen" role="status"><div class="loading-logo">B</div><strong>Preparing Barangay Bucana</strong><span>Furnishing the rooms&hellip;</span></div>
+      <div id="error-screen" hidden role="alert"><h2>The 3D view couldn't start.</h2><p id="error-message"></p><button type="button" id="retry-button">Reload the view</button></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
