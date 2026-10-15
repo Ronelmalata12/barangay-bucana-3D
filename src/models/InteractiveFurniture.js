@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CAPTAIN_PARTITION } from './HallLayout.js';
 import { box, cylinder, materials } from './primitives.js';
 
 const paper = new THREE.MeshStandardMaterial({ color: '#faf6e9', roughness: 0.94 });
@@ -65,9 +66,9 @@ export function createCabinetDoor(parent, interactions, {
 export function createCaptainOfficeDoor(parent, interactions, floorY, glassMaterial) {
   const id = 'captain-office-door';
   const moving = new THREE.Group();
-  moving.position.set(1.14, floorY, 2.16);
+  moving.position.set(CAPTAIN_PARTITION.x, floorY, CAPTAIN_PARTITION.doorMaxZ);
   parent.add(moving);
-  const width = 1.02;
+  const width = CAPTAIN_PARTITION.doorMaxZ - CAPTAIN_PARTITION.doorMinZ;
   const height = 2.14;
   box(moving, 0.056, 0.81, width, materials.white, 0, 0.445, -width / 2);
   const glazing = box(moving, 0.02, 1.08, width - 0.11, glassMaterial, 0, 1.405, -width / 2);
@@ -83,6 +84,9 @@ export function createCaptainOfficeDoor(parent, interactions, floorY, glassMater
   }
   return register(interactions, {
     id, label: "Captain's office door", kind: 'door', floor: 1, blocking: true,
-    obstacle: { floor: 1, minX: 1.105, maxX: 1.175, minZ: 1.14, maxZ: 2.16 },
+    obstacle: {
+      floor:1, minX:CAPTAIN_PARTITION.x - 0.035, maxX:CAPTAIN_PARTITION.x + 0.035,
+      minZ:CAPTAIN_PARTITION.doorMinZ, maxZ:CAPTAIN_PARTITION.doorMaxZ,
+    },
   }, moving, amount => { moving.rotation.y = Math.max(0, Math.min(1, amount)) * Math.PI / 2; });
 }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /** Nearby objects are operated by the visitor, with real moving 3D parts. */
-export function createInteractions({ camera, domElement, model, walkthrough, onTargetChange = () => {}, onAction = () => {} }) {
+export function createInteractions({ camera, domElement, model, walkthrough, onTargetChange = () => {}, onAction = () => {}, onInspect = () => {} }) {
   const items = model.interactions ?? [];
   const owners = new WeakMap();
   const raycaster = new THREE.Raycaster();
@@ -41,7 +41,7 @@ export function createInteractions({ camera, domElement, model, walkthrough, onT
   }
 
   function pick(point = center) {
-    if (!walkthrough.active) return null;
+    if (!walkthrough.active || walkthrough.paused) return null;
     model.group.updateMatrixWorld(true);
     camera.updateMatrixWorld(true);
     raycaster.setFromCamera(point, camera);
@@ -66,7 +66,11 @@ export function createInteractions({ camera, domElement, model, walkthrough, onT
   }
 
   function toggle(item) {
-    if (!item || !walkthrough.active || item.floor !== walkthrough.floor) return false;
+    if (!item || !walkthrough.active || walkthrough.paused || item.floor !== walkthrough.floor) return false;
+    const blocked = item.beforeToggle?.();
+    if (blocked) { onAction(blocked); return false; }
+    if (item.onActivate) { onAction(item.onActivate()); return true; }
+    if (item.kind === 'record') { onInspect(item.record); return true; }
     if (item.target === 1 && playerInDoorway(item)) {
       onAction('Step clear of the doorway before closing it.');
       return false;
@@ -81,7 +85,7 @@ export function createInteractions({ camera, domElement, model, walkthrough, onT
     current = walkthrough.active
       ? pick(!walkthrough.locked && pointerInside && !down ? pointer : center)
       : null;
-    const prompt = current ? (current.actionLabels?.[current.target ? 1 : 0]
+    const prompt = current ? (current.getPrompt?.() ?? current.actionLabels?.[current.target ? 1 : 0]
       ?? `${current.target ? 'Close' : 'Open'} ${current.label}`) : '';
     if (prompt !== lastPrompt) { lastPrompt = prompt; onTargetChange(current, prompt); }
     highlight.visible = Boolean(current);

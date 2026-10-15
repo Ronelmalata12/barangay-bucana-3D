@@ -3,7 +3,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, cylinder, beam, label, materials } from './primitives.js';
 import { createInteriorDetails } from './InteriorDetails.js';
 import { createLeftAnnex } from './LeftAnnex.js';
-import { HALL_STAIRS } from './HallLayout.js';
+import { HALL_STAIRS, CAPTAIN_WINDOW } from './HallLayout.js';
+import { FIRE_EXIT, createFireExitDoor, createExitLanding } from './FireExit.js';
+import { createWindowGrille } from './WindowGrille.js';
+import { createWindowCurtains } from './WindowCurtains.js';
 
 // Consolidate within each original group so roof, floor and facade cutaways stay independent.
 function batchStaticSection(parent) {
@@ -57,6 +60,7 @@ export function createAdminBuilding() {
   const roofMaterial = new THREE.MeshStandardMaterial({ color: '#1e4f85', metalness: 0.32, roughness: 0.54, side: THREE.DoubleSide });
   const roofSeams = new THREE.MeshStandardMaterial({ color: '#4274aa', metalness: 0.4, roughness: 0.43 });
   const paleBlue = new THREE.MeshStandardMaterial({ color: '#d8e7f6', roughness: 0.87 });
+  const grilleSteel = new THREE.MeshStandardMaterial({ color:'#2c4257', roughness:0.5, metalness:0.65 });
   const interactions = [];
   const handleHitMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
   const seamMaterial = new THREE.LineBasicMaterial({ color: '#c7c1b3', transparent: true, opacity: 0.45 });
@@ -64,7 +68,8 @@ export function createAdminBuilding() {
   box(group, 12.38, 0.18, 8.38, materials.concrete, 0, 0.035, 0);
   box(group, 12.0, 0.14, 8.0, warmTile, 0, 0.09, 0);
   box(group, 12.16, 0.12, 0.13, materials.green, 0, 0.18, -4.04);
-  box(group, 12.16, 0.12, 0.13, materials.green, 0, 0.18, 4.04);
+  for(const side of [-1,1]) box(group, (12.16-FIRE_EXIT.width)/2, 0.12, 0.13, materials.green,
+    side*(12.16+FIRE_EXIT.width)/4, 0.18, 4.04);
   for (const x of [-6.04, 6.04]) box(group, 0.13, 0.12, 8.14, materials.green, x, 0.18, 0);
 
   function floorGrid(parent, y, minX, maxX, minZ, maxZ, spacing = 0.8) {
@@ -89,11 +94,13 @@ export function createAdminBuilding() {
       const left = opening.x - opening.w / 2;
       const right = opening.x + opening.w / 2;
       if (left > cursor) box(wall, left - cursor, height, 0.22, materials.stucco, (left + cursor) / 2, yBase + height / 2, 0);
-      const bottom = opening.door ? 0 : 0.82;
-      const top = opening.door ? 2.28 : 2.13;
+      const bottom = opening.door ? 0 : opening.bottom ?? 0.82;
+      const top = opening.door ? 2.28 : opening.top ?? 2.13;
       if (bottom > 0) box(wall, opening.w, bottom, 0.22, materials.stucco, opening.x, yBase + bottom / 2, 0);
       box(wall, opening.w, height - top, 0.22, materials.stucco, opening.x, yBase + (top + height) / 2, 0);
       if (opening.door) {
+        if(opening.fireExit) createFireExitDoor(wall,interactions,yBase);
+        else {
         // Manual doors share one interaction, while their two leaves slide
         // independently into the solid wall beside the clear opening.
         const moving = new THREE.Group();
@@ -166,31 +173,53 @@ export function createAdminBuilding() {
           },
         };
         interactions.push(interaction);
+        }
         for (const dx of [-opening.w / 2, opening.w / 2]) box(wall, 0.045, top, 0.085, materials.dark, opening.x + dx, yBase + top / 2, -0.005);
         box(wall, opening.w + 0.08, 0.06, 0.12, materials.green, opening.x, yBase + top + 0.03, -0.02);
       } else {
         const openingHeight = top - bottom;
         const glass = box(wall, opening.w - 0.04, openingHeight - 0.025, 0.035, darkGlass, opening.x, yBase + (bottom + top) / 2, -0.007);
         glass.castShadow = false;
+        if(opening.curtains) {
+          glass.name='Captain office front window glazing';
+          createWindowCurtains(wall,{x:opening.x,floorY:yBase,width:opening.w,bottom,top});
+        }
         for (const dx of [-opening.w / 2, opening.w / 2]) box(wall, 0.12, openingHeight + 0.19, 0.29, materials.green, opening.x + dx, yBase + (bottom + top) / 2, -0.028);
         for (const dy of [bottom, top]) box(wall, opening.w + 0.12, 0.11, 0.3, materials.green, opening.x, yBase + dy, -0.03);
         const panes = opening.w > 2.4 ? 3 : 2;
         for (let pane = 1; pane < panes; pane++) box(wall, 0.038, openingHeight, 0.075, materials.dark, opening.x - opening.w / 2 + opening.w * pane / panes, yBase + (bottom + top) / 2, -0.028);
         box(wall, opening.w, 0.035, 0.075, materials.dark, opening.x, yBase + bottom + openingHeight * 0.63, -0.028);
         box(wall, opening.w + 0.18, 0.075, 0.39, materials.stucco, opening.x, yBase + bottom - 0.07, -0.075);
+        if (yBase < 2) createWindowGrille(wall, {
+          x:opening.x, y:yBase + (bottom + top) / 2,
+          width:opening.w, height:openingHeight, material:grilleSteel,
+        });
       }
       cursor = right;
     }
     if (cursor < width / 2) box(wall, width / 2 - cursor, height, 0.22, materials.stucco, (width / 2 + cursor) / 2, yBase + height / 2, 0);
-    box(wall, width + 0.04, 0.13, 0.24, materials.green, 0, yBase + 0.18, -0.015);
+    // Keep the low accent band out of every doorway, including the fire exit.
+    let bandStart = -width/2-0.02;
+    for(const opening of ordered.filter(item=>item.door)) {
+      const edge = opening.x-opening.w/2;
+      if(edge>bandStart) box(wall,edge-bandStart,0.13,0.24,materials.green,(edge+bandStart)/2,yBase+0.18,-0.015);
+      bandStart=opening.x+opening.w/2;
+    }
+    if(bandStart<width/2+0.02) box(wall,width/2+0.02-bandStart,0.13,0.24,materials.green,(width/2+0.02+bandStart)/2,yBase+0.18,-0.015);
     return wall;
   }
 
   const frontOpenings = [{ x: -3.58, w: 2.7 }, { x: 0, w: 2.24, door: true, interactionId: 'entrance-door', doorLabel: 'Main entrance' }, { x: 3.58, w: 2.7 }];
   facade(frontGround, 12, 2.59, 0.16, frontOpenings, 0, -4, 0);
-  // A solid front office wall backs the storage cupboard and captain's chair.
-  facade(frontUpper, 12, 2.67, 3.03, [{ x: -3.58, w: 2.7 }], 0, -4, 0);
-  facade(group, 12, 2.59, 0.16, [{ x: -3.7, w: 2.5 }, { x: 0, w: 1.6 }, { x: 3.7, w: 2.5 }], 0, 4, Math.PI);
+  // The office window sits above the storage on the viewer's left of the facade.
+  facade(frontUpper, 12, 2.67, 3.03, [
+    {x:-3.58,w:2.7},
+    {x:CAPTAIN_WINDOW.x,w:CAPTAIN_WINDOW.width,bottom:CAPTAIN_WINDOW.bottom,top:CAPTAIN_WINDOW.top,curtains:true},
+  ], 0, -4, 0);
+  facade(group, 12, 2.59, 0.16, [{ x: -3.7, w: 2.5 }, { x: 0, w: FIRE_EXIT.width, door:true, fireExit:true }, { x: 3.7, w: 2.5 }], 0, 4, Math.PI);
+  createExitLanding(group,0.16);
+  const exitRoute = label(upperFloor,'FIRE EXIT VIA STAIRS ↓',1.85,0.18,4.55,5.43,3.74,{background:'#176044',fontSize:110});
+  exitRoute.rotation.y = Math.PI;
   facade(upperFloor, 12, 2.67, 3.03, [{ x: -3.7, w: 2.5 }, { x: 0, w: 1.6 }, { x: 3.7, w: 2.5 }], 0, 4, Math.PI);
   facade(group, 8, 2.59, 0.16, [{ x: -2.05, w: 2.1 }, { x: 2.05, w: 2.1 }], -6, 0, Math.PI / 2);
   facade(upperFloor, 8, 2.67, 3.03, [{ x: -2.05, w: 2.1 }, { x: 2.05, w: 2.1 }], -6, 0, Math.PI / 2);
@@ -303,12 +332,17 @@ export function createAdminBuilding() {
   roof.add(annex.roof);
   cutawayWalls.push(annex.frontWall);
   const lights = [...interiors.lights, ...annex.lights];
-  const rooms = [...interiors.rooms, annex.room];
+  const rooms = [...interiors.rooms, annex.room,
+    {id:'fire-exit',name:'Rear fire exit landing',floor:0,position:[0,1.76,5.1],yaw:0,pitch:0,
+      bounds:{minX:-0.78,maxX:0.78,minZ:4.3,maxZ:6.0}},
+  ];
   const hallBounds = interiors.walkData.bounds;
   const walkData = {
     ...interiors.walkData,
     walkableAreas: [
       {floor:0, ...hallBounds},
+      {floor:0, minX:-0.48, maxX:0.48, minZ:3.65, maxZ:4.4},
+      {floor:0, minX:-0.78, maxX:0.78, minZ:4.35, maxZ:6.0},
       {floor:1, ...hallBounds},
       {floor:1, minX:5.55, maxX:6.25, minZ:-3.23, maxZ:-2.57},
       {floor:1, ...annex.bounds},

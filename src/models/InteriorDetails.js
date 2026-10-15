@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, cylinder, beam, label, materials } from './primitives.js';
 import { createDrawer, createCabinetDoor, createCaptainOfficeDoor } from './InteractiveFurniture.js';
-import { HALL_STAIRS, CAPTAIN_WORKSPACE } from './HallLayout.js';
+import { HALL_STAIRS, CAPTAIN_WORKSPACE, CAPTAIN_PARTITION, CAPTAIN_WINDOW } from './HallLayout.js';
+import { secureCabinet, addSampleFile, SAMPLE_RECORDS } from './RecordsCabinet.js';
 
 // Merge static furniture by material once; retain glazed partitions and text as separate meshes.
 // This keeps a richly furnished hall inexpensive to draw without changing its cutaway groups.
@@ -223,17 +224,32 @@ export function createInteriorDetails() {
   box(groundFloor, 0.82, 1.6, 0.028, materials.dark, -5.3, floorY + 0.8, 3.548);
   for (const y of [0.018, 1.582])
     box(groundFloor, 0.82, 0.036, 0.44, materials.dark, -5.3, floorY + y, 3.34);
+  const tanodFiles = [];
   for (let i = 0; i < 4; i++) {
-    createDrawer(groundFloor, interactions, {
+    tanodFiles.push(createDrawer(groundFloor, interactions, {
       id: `tanod-file-drawer-${i + 1}`, label: `Tanod file cabinet drawer ${i + 1}`, floor: 0,
       position: [-5.3, floorY + 0.25 + i * 0.35, 3.1], width: 0.75, height: 0.31,
       depth: 0.405, travel: 0.34, frontMaterial: materials.metal,
       trayMaterial: materials.dark, handleMaterial: materials.dark,
-    });
+    }));
   }
-  wallClock(groundFloor, -2.1, 2.26, 3.83);
+  const tanodLock = secureCabinet(groundFloor, interactions, {
+    id:'tanod-records',floor:0,position:[-5.3,floorY+1.5,3.055],panels:tanodFiles,
+  });
+  ['residents','clearances','blotter','mediation'].forEach((key,index) => {
+    const panel = tanodFiles[index], record = SAMPLE_RECORDS[key];
+    const title = label(panel.moving, record.title.toUpperCase(), 0.63, 0.07, 0, -0.08, -0.022,
+      {background:'#d9e2e8',color:'#173c65',fontSize:95});
+    title.rotation.y = Math.PI;
+    addSampleFile(panel.moving,interactions,{
+      id:`tanod-record-${key}`,floor:0,position:[0,-0.068,0.215],width:0.48,height:0.21,
+      rotationX:-Math.PI/2,panel,lock:tanodLock,record,extraHitMeshes:[title],
+    });
+  });
+  // Center the clock in the clear wall gap between the fire exit and window trim.
+  wallClock(groundFloor, -1.56, 2.26, 3.83);
 
-  // Lupon mediation area, with an oval table, six seats and privacy partition.
+  // Five mediation seats leave the aisle across the foot of the stairs clear.
   box(groundFloor, 0.095, 1.08, 3.0, cream, 0.81, floorY + 0.54, -1.96);
   box(groundFloor, 0.018, 0.91, 3.0, acrylic, 0.81, floorY + 1.535, -1.96).castShadow = false;
   box(groundFloor, 0.09, 0.055, 3.05, materials.green, 0.81, floorY + 2.025, -1.96);
@@ -241,7 +257,6 @@ export function createInteriorDetails() {
   mediationTop.scale.set(0.92, 1, 1.21);
   for (const z of [-2.45, -1.25]) cylinder(groundFloor, 0.16, 0.28, 0.7, materials.dark, 3.0, floorY + 0.35, z);
   chair(groundFloor, 3.0, -3.35, Math.PI);
-  chair(groundFloor, 1.65, 0.05, -Math.PI / 2);
   for (const z of [-2.37, -1.4]) {
     chair(groundFloor, 1.65, z, -Math.PI / 2);
     chair(groundFloor, 4.35, z, Math.PI / 2);
@@ -302,13 +317,34 @@ export function createInteriorDetails() {
   plant(upperFloor, 0.35, -3.0, upperY, 1.23);
   plant(upperFloor, -5.24, -2.98, upperY, 1.15);
 
-  // Captain's office and a glazed separating wall with an open doorway to the landing.
-  box(upperFloor, 0.105, 1.0, 4.65, cream, 1.14, upperY + 0.5, -1.275);
-  box(upperFloor, 0.018, 1.32, 4.65, acrylic, 1.14, upperY + 1.67, -1.275).castShadow = false;
-  box(upperFloor, 0.105, 0.075, 4.65, materials.green, 1.14, upperY + 2.355, -1.275);
-  box(upperFloor, 0.105, 2.35, 0.08, materials.green, 1.14, upperY + 1.175, 1.1);
-  box(upperFloor, 0.105, 2.35, 0.08, materials.green, 1.14, upperY + 1.175, 2.2);
-  box(upperFloor, 0.105, 0.18, 1.15, materials.green, 1.14, upperY + 2.27, 1.65);
+  // Enclose the office all the way to both exterior walls and the ceiling.
+  // The rear section closes the former passage beside the hinged door.
+  const partition = CAPTAIN_PARTITION;
+  function officePartitionSection(minZ, maxZ, name) {
+    const section = new THREE.Group();
+    section.name = name;
+    upperFloor.add(section);
+    const length = maxZ - minZ, centerZ = (minZ + maxZ) / 2;
+    const glassHeight = partition.height - 1.075;
+    box(section, partition.thickness - 0.02, 1.0, length, cream, partition.x, upperY + 0.5, centerZ);
+    box(section, 0.018, glassHeight, length, acrylic, partition.x, upperY + 1 + glassHeight / 2, centerZ).castShadow = false;
+    box(section, partition.thickness, 0.075, length, materials.green, partition.x, upperY + partition.height - 0.0375, centerZ);
+    box(section, partition.thickness, 0.075, length, materials.green, partition.x, upperY + 0.0375, centerZ);
+    const panels = Math.ceil(length / 1.3);
+    for (let i = 0; i <= panels; i++) {
+      box(section, partition.thickness, partition.height, 0.045, materials.green,
+        partition.x, upperY + partition.height / 2, minZ + length * i / panels);
+    }
+  }
+  officePartitionSection(partition.minZ, partition.doorMinZ - partition.jambDepth, 'Captain office front glazed enclosure');
+  officePartitionSection(partition.doorMaxZ + partition.jambDepth, partition.maxZ, 'Captain office closed rear side passage');
+  for (const z of [partition.doorMinZ - partition.jambDepth / 2, partition.doorMaxZ + partition.jambDepth / 2])
+    box(upperFloor, partition.thickness, partition.height, partition.jambDepth, materials.green,
+      partition.x, upperY + partition.height / 2, z);
+  const headerBottom = 2.17;
+  box(upperFloor, partition.thickness, partition.height - headerBottom,
+    partition.doorMaxZ - partition.doorMinZ + partition.jambDepth * 2, materials.green,
+    partition.x, upperY + (headerBottom + partition.height) / 2, (partition.doorMinZ + partition.doorMaxZ) / 2);
   createCaptainOfficeDoor(upperFloor, interactions, upperY, acrylic);
   const captainX = CAPTAIN_WORKSPACE.x;
   const captainDesk = desk(upperFloor, captainX, CAPTAIN_WORKSPACE.deskZ, 2.24, 1.02, upperY);
@@ -338,22 +374,32 @@ export function createInteriorDetails() {
   box(credenza, 2.18, 0.795, 0.032, materials.wood, 3.58, upperY + 0.425, 0.764);
   for (const x of [2.515, 3.06, 3.58, 4.1, 4.645])
     box(credenza, 0.05, 0.795, 0.4, materials.wood, x, upperY + 0.425, 0.57);
+  const captainFiles = [];
   for (let i = 0; i < 4; i++) {
     const x = 2.8 + i * 0.52;
-    createCabinetDoor(credenza, interactions, {
+    captainFiles.push(createCabinetDoor(credenza, interactions, {
       id: `captain-cupboard-door-${i + 1}`, label: `Captain cupboard door ${i + 1}`, floor: 1,
       position: [x, upperY + 0.45, 0.342], width: 0.44, height: 0.64,
       doorMaterial: cream, handleMaterial: brass,
-    });
+    }));
     for (let file = 0; file < 3; file++)
       box(credenza, 0.065, 0.25, 0.24, file % 2 ? redBook : blueBook,
         x - 0.11 + file * 0.08, upperY + 0.565, 0.565);
     box(credenza, 0.34, 0.09, 0.24, paper, x, upperY + 0.11, 0.565);
   }
+  const captainLock = secureCabinet(credenza, interactions, {
+    id:'captain-records',floor:1,position:[3.58,upperY+0.77,0.30],panels:captainFiles,
+  });
+  ['resolutions','budget','plans','inventory'].forEach((key,index) => {
+    addSampleFile(credenza,interactions,{
+      id:`captain-record-${key}`,floor:1,position:[2.8+index*0.52,upperY+0.565,0.438],width:0.32,height:0.22,
+      panel:captainFiles[index],lock:captainLock,record:SAMPLE_RECORDS[key],
+    });
+  });
   for (let i = 0; i < 7; i++) box(credenza, 0.07, 0.31 + (i % 3) * 0.025, 0.22, i % 2 ? redBook : blueBook, 2.91 + i * 0.09, upperY + 1.025, 0.55);
   // Keep the space between the office doorway and stair railing open.
   plant(upperFloor, 5.35, -0.4, upperY, 1.18);
-  const captainName = frontPlaque(upperFloor, 'PUNONG BARANGAY', 1.9, 0.16, captainX, 4.06, -3.87);
+  const captainName = frontPlaque(upperFloor, 'PUNONG BARANGAY', 1.9, 0.16, CAPTAIN_WINDOW.x, 5.52, -3.87);
   captainName.rotation.y = 0;
   const clockMount = new THREE.Group();
   clockMount.position.set(captainX + 1.88, upperY + 1.9, -3.84);
@@ -380,9 +426,9 @@ export function createInteriorDetails() {
   // Safe, eye-level starting points face the furniture in each furnished room.
   // Yaw follows Three.js camera direction: (-sin(yaw), 0, -cos(yaw)).
   const rooms = [
-    { id: 'assistance', name: 'Public Assistance', floor: 0, position: [-0.45, 1.76, -2.8], yaw: 1.948, pitch: -0.1, description: 'Clearance counter, acrylic partitions, service computers and waiting chairs.' },
+    { id: 'assistance', name: 'Public Assistance', floor: 0, position: [-1.5, 1.76, -2.75], yaw: 1.948, pitch: -0.1, description: 'Clearance counter, acrylic partitions, service computers and waiting chairs.' },
     { id: 'tanod', name: 'Tanod / Blotter Desk', floor: 0, position: [-1.3, 1.76, 1.4], yaw: 1.891, pitch: -0.12, description: 'Visit the blotter desk, logbooks and filing cabinet. Open the desk and file drawers to see the records inside.' },
-    { id: 'mediation', name: 'Lupon Mediation Room', floor: 0, position: [2.5, 1.76, 0.55], yaw: -0.237, pitch: -0.12, description: 'Explore the six-seat mediation table, case documents and privacy partition.' },
+    { id: 'mediation', name: 'Lupon Mediation Room', floor: 0, position: [2.5, 1.76, 0.55], yaw: -0.237, pitch: -0.12, description: 'Explore the five-seat mediation table, case documents and privacy partition, with a clear approach to the stairs.' },
     { id: 'session', name: 'Session Hall', floor: 1, position: [-4.95, 4.63, -2.32], yaw: -2.254, pitch: -0.08, description: 'The council chamber has an oval table, ten council seats, microphones and meeting papers.' },
     { id: 'captain', name: 'Punong Barangay Office', floor: 1, position: [captainX, 4.63, 1.8], yaw: -0.86, pitch: 0.065, description: 'The captain sits on the front side of the desk. Visitor chairs sit beside the right-hand plant, below the live CCTV display.' },
   ];
@@ -395,9 +441,10 @@ export function createInteriorDetails() {
   // central ground-floor aisle remain traversable.
   obstacle(0, -5.6, -0.4, 0.5825, 0.6775);
   obstacle(0, 0.7625, 0.8575, -3.46, -0.46);
-  obstacle(1, 1.0875, 1.1925, -3.6, 1.05);
-  obstacle(1, 1.0875, 1.1925, 1.06, 1.14);
-  obstacle(1, 1.0875, 1.1925, 2.16, 2.24);
+  obstacle(1, partition.x - partition.thickness / 2, partition.x + partition.thickness / 2,
+    partition.minZ, partition.doorMinZ);
+  obstacle(1, partition.x - partition.thickness / 2, partition.x + partition.thickness / 2,
+    partition.doorMaxZ, partition.maxZ);
   // Upper landing rails guard the real stair opening. The north end opens
   // directly onto the landing so visitors can walk up and down the flight.
   obstacle(1, HALL_STAIRS.railLeft - 0.03, HALL_STAIRS.railLeft + 0.03, HALL_STAIRS.openingFront - 0.03, HALL_STAIRS.topZ);
@@ -412,7 +459,6 @@ export function createInteriorDetails() {
   obstacle(0, -5.71, -4.89, 3.12, 3.56);
   obstacle(0, 2.08, 3.92, -3.06, -0.64);
   obstacle(0, 2.76, 3.24, -3.59, -3.11);
-  obstacle(0, 1.41, 1.89, -0.19, 0.29);
   for (const z of [-2.37, -1.4]) {
     obstacle(0, 1.41, 1.89, z - 0.24, z + 0.24);
     obstacle(0, 4.11, 4.59, z - 0.24, z + 0.24);

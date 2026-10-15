@@ -6,6 +6,12 @@ import { createWalkthrough } from './Walkthrough.js';
 import { createInteractions } from './Interactions.js';
 import { createCCTVSystem } from './CCTVSystem.js';
 import { createEmergencySystem } from './models/EmergencySystem.js';
+import { createSecurityDetector } from './SecurityDetector.js';
+import { createRecordsViewer } from './RecordsViewer.js';
+import { createAccessControl } from './AccessControl.js';
+import { createSecurityLabels } from './SecurityLabels.js';
+import { createAlarmAudio } from './AlarmAudio.js';
+import { createEntranceMotion } from './EntranceMotion.js';
 import './style.css';
 
 const parameters = { night:false, autoRotate:false, shadows:true, rooftops:true };
@@ -18,10 +24,19 @@ const viewContent = {
 const container = document.querySelector('#scene-container');
 let activeView = 'overview';
 let transition = null;
-let renderer, scene, camera, controls, admin, walkthrough, interactions, cctv, emergency, sun, hemisphere, ambient, sky;
+let renderer, scene, camera, controls, admin, walkthrough, interactions, cctv, emergency, security, access, sun, hemisphere, ambient, sky;
 let actionTimer;
+let recordsViewer;
+let labels;
+let alarmAudio, motion;
 let lastTime = 0;
 let ready = false;
+
+function showAction(message) {
+  clearTimeout(actionTimer);
+  document.querySelector('#object-status').textContent=message;
+  actionTimer=setTimeout(()=>{document.querySelector('#object-status').textContent='';},3500);
+}
 
 function showError(error) {
   console.error(error);
@@ -93,6 +108,7 @@ function updateModeUI(inside) {
 
 function leaveWalk() {
   if(!walkthrough.active) return;
+  recordsViewer?.close();
   walkthrough.exit();
   controls.enabled=true;
   controls.autoRotate=parameters.autoRotate;
@@ -157,6 +173,8 @@ function enterHall(roomId=null) {
   updateModeUI(true);
   document.querySelectorAll('.view-button').forEach(button=>{button.classList.remove('active');button.setAttribute('aria-pressed','false');});
   walkthrough.enter(roomId);
+  security.resetTracking();
+  motion.resetTracking();
   setLighting(parameters.night);
   resize();
   renderer.domElement.focus({preventScroll:true});
@@ -164,7 +182,7 @@ function enterHall(roomId=null) {
 
 function visitRoom(id) {
   if(!walkthrough.active) enterHall(id);
-  else walkthrough.goToRoom(id);
+  else { walkthrough.goToRoom(id); security.resetTracking(); motion.resetTracking(); }
 }
 
 function createSettings() {
@@ -228,15 +246,50 @@ function initialize() {
   admin.group.position.set(0,0,0);
   scene.add(admin.group);
   cctv=createCCTVSystem({renderer,scene,model:admin,sky});
+  alarmAudio=createAlarmAudio({button:document.querySelector('#sound-toggle')});
   emergency=createEmergencySystem({model:admin,reducedMotion,onChange:active=>{
+    alarmAudio.setActive(active);
     document.querySelector('#emergency-banner').hidden=!active;
     document.body.classList.toggle('emergency-active',active);
+    if(!active) {
+      security?.reset();
+      motion?.reset();
+      document.querySelector('#emergency-banner strong').textContent='EMERGENCY ALERT';
+    }
     cctv.invalidate();
+  }});
+  motion=createEntranceMotion({model:admin,onMotion:()=>{
+    if(!emergency.active) {
+      emergency.setActive(true);
+      document.querySelector('#emergency-banner strong').textContent='MOTION ALERT · MAIN DOOR';
+    }
+  }});
+  security=createSecurityDetector({model:admin,reducedMotion,
+    onThreat:item=>{
+      emergency.setActive(true);
+      document.querySelector('#emergency-banner strong').textContent=`SECURITY ALERT · ${item.toUpperCase()} (DEMO)`;
+    },
+    onResult:result=>{
+      const status=document.querySelector('#security-status');
+      status.textContent=result.message;
+      status.dataset.state=result.state;
+    },
+  });
+  access=createAccessControl({model:admin,camera,getWalker:()=>walkthrough,onStatus:result=>{
+    const status=document.querySelector('#rfid-status');
+    status.textContent=result.message;
+    status.dataset.state=result.state;
+    if(walkthrough?.active) showAction(result.message);
   }});
   walkthrough=createWalkthrough({camera,domElement:renderer.domElement,model:admin,onRoomChange:updateRoom,onFloorChange:()=>updateRoom(walkthrough.room),onLockChange:locked=>{
     document.querySelector('#walk-hint').textContent=locked?'Move the mouse to look · E to interact · Esc frees the cursor':'Drag to look · L locks the mouse · E to interact';
   }});
+  recordsViewer=createRecordsViewer({onOpen:()=>walkthrough.setPaused(true),onClose:()=>{
+    walkthrough.setPaused(false);
+    renderer.domElement.focus({preventScroll:true});
+  }});
   interactions=createInteractions({camera,domElement:renderer.domElement,model:admin,walkthrough,
+    onInspect:record=>recordsViewer.open(record),
     onTargetChange:(item,prompt)=>{
       const button=document.querySelector('#interact-button');
       button.disabled=!item;
@@ -244,14 +297,26 @@ function initialize() {
       document.querySelector('#interact-label').textContent=prompt||'Aim at an interactive object';
       document.querySelector('#crosshair').classList.toggle('can-interact',Boolean(item));
     },
-    onAction:message=>{
-      clearTimeout(actionTimer);
-      document.querySelector('#object-status').textContent=message;
-      actionTimer=setTimeout(()=>{document.querySelector('#object-status').textContent='';},2200);
-    },
+    onAction:showAction,
   });
   document.querySelector('#interact-button').addEventListener('click',()=>interactions.interact());
   createSettings();
+  document.querySelector('#rfid-card').addEventListener('change',event=>access.setCard(event.target.value));
+  document.querySelectorAll('[data-rfid-reader]').forEach(button=>button.addEventListener('click',()=>{
+    visitRoom(`rfid-${button.dataset.rfidReader}-entry`);
+    document.querySelector('#rfid-controls').open=false;
+  }));
+  document.querySelector('#rfid-controls').addEventListener('toggle',event=>{
+    document.body.classList.toggle('rfid-controls-open',event.currentTarget.open);
+    if(event.currentTarget.open) document.querySelector('#security-controls').open=false;
+  });
+  document.querySelector('#security-item').addEventListener('change',event=>security.setCarriedItem(event.target.value));
+  document.querySelector('#security-entrance').addEventListener('click',()=>enterHall());
+  document.querySelector('#security-reset').addEventListener('click',()=>emergency.setActive(false));
+  document.querySelector('#security-controls').addEventListener('toggle',event=>{
+    document.body.classList.toggle('security-demo-open',event.currentTarget.open);
+    if(event.currentTarget.open) document.querySelector('#rfid-controls').open=false;
+  });
   document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>selectView(button.dataset.view)));
   document.querySelectorAll('[data-room]').forEach(button=>button.addEventListener('click',()=>visitRoom(button.dataset.room)));
   document.querySelector('#enter-button').addEventListener('click',()=>enterHall());
@@ -272,6 +337,7 @@ function initialize() {
   fullButton.addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.querySelector('#app').requestFullscreen();}catch(error){console.warn(error.message);}});
   document.addEventListener('fullscreenchange',()=>fullButton.setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen'));
   window.addEventListener('keydown',event=>{
+    if(document.querySelector('#records-dialog').open) return;
     if(event.target.matches('input,textarea,select')||event.ctrlKey||event.metaKey||event.altKey) return;
     const view={1:'overview',2:'ground',3:'session'}[event.key];
     if(view) selectView(view);
@@ -284,8 +350,18 @@ function initialize() {
   setLighting(false);
   selectView('overview',true);
   resize();
+  labels=createSecurityLabels({model:admin,camera,cctv,emergency,security,access,motion,getView:()=>activeView,
+    onRequestFloor:()=>selectView(walkthrough.active&&walkthrough.floor===1?'session':'ground'),
+    onFocus:point=>{
+      transition=null;
+      const offset=camera.position.clone().sub(controls.target);
+      offset.setLength(Math.min(offset.length(),innerWidth<760?14:12));
+      controls.target.copy(point);camera.position.copy(point).add(offset);controls.update();
+    },
+    onReset:()=>selectView(activeView,true),
+  });
   ready=true;
-  window.bucana={scene,camera,renderer,controls,admin,walkthrough,interactions,cctv,emergency,selectView,enterHall,visitRoom,setLighting,get view(){return activeView;},get settings(){return {...parameters};}};
+  window.bucana={scene,camera,renderer,controls,admin,walkthrough,interactions,cctv,emergency,security,access,labels,motion,alarmAudio,selectView,enterHall,visitRoom,setLighting,get view(){return activeView;},get settings(){return {...parameters};}};
   requestAnimationFrame(animate);
 }
 
@@ -314,6 +390,7 @@ function animate(time) {
   if(!ready) return;
   const delta=Math.min((time-lastTime)/1000,0.05);
   lastTime=time;
+  access.update(time);
   interactions.update(delta);
   emergency.update(time);
   if(walkthrough.active) walkthrough.update(delta);
@@ -333,7 +410,10 @@ function animate(time) {
     updateHUD();
   }
   sky.position.copy(camera.position);
+  security.update(time,walkthrough,camera);
+  motion.update(time,walkthrough,camera);
   renderer.render(scene,camera);
+  labels.update(time);
   cctv.update(time,camera);
   const loading=document.querySelector('#loading-screen');
   if(!loading.classList.contains('loaded')){loading.classList.add('loaded');setTimeout(()=>{loading.hidden=true;},550);}

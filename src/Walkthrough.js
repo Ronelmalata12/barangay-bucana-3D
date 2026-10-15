@@ -27,6 +27,7 @@ export function createWalkthrough({
   const touchMoves = new Set();
   const motionKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight']);
   let active = false;
+  let paused = false;
   let floor = 0;
   let yaw = Math.PI;
   let pitch = 0;
@@ -51,7 +52,7 @@ export function createWalkthrough({
   }
 
   function look(dx, dy) {
-    if (!active) return;
+    if (!active || paused) return;
     yaw -= dx * lookSensitivity;
     pitch = clamp(pitch - dy * lookSensitivity, -1.22, 1.22);
     orientCamera();
@@ -154,7 +155,8 @@ export function createWalkthrough({
   }
 
   function goToRoom(id) {
-    const room = rooms.find((candidate) => candidate.id === id);
+    const target = model.accessControl?.resolveRoom(id) ?? id;
+    const room = rooms.find((candidate) => candidate.id === target);
     if (!room) return false;
     clearMoves();
     onStairs = false;
@@ -176,10 +178,11 @@ export function createWalkthrough({
     onStairs = false;
     floor = 0;
     if (!roomId || !goToRoom(roomId)) {
-      const spawn = safeSpawn(0, -3.1);
+      const entrance = data.entrance ?? {x:0, z:-3.1, yaw:Math.PI, pitch:0};
+      const spawn = safeSpawn(entrance.x, entrance.z);
       camera.position.set(spawn.x, floors[0] + eyeHeight, spawn.z);
-      yaw = Math.PI;
-      pitch = 0;
+      yaw = entrance.yaw;
+      pitch = entrance.pitch;
       orientCamera();
       nearestRoom();
     }
@@ -198,6 +201,7 @@ export function createWalkthrough({
   function canTakeStep(x, z) {
     const previous = camera.position;
     if (!collisionFree(x, z, previous)) return false;
+    if (model.accessControl && !model.accessControl.canMoveTo(previous,{x,z},floor)) return false;
     const progress = stairProgress(z);
     if (onStairs) {
       // Rails prevent stepping out of the open stairwell halfway up.
@@ -228,7 +232,7 @@ export function createWalkthrough({
   }
 
   function update(delta) {
-    if (!active) return;
+    if (!active || paused) return;
     const dt = clamp(delta, 0, 0.05);
     const forward = Number(pressedKeys.has('KeyW') || pressedKeys.has('ArrowUp') || touchMoves.has('forward'))
       - Number(pressedKeys.has('KeyS') || pressedKeys.has('ArrowDown') || touchMoves.has('backward'));
@@ -254,11 +258,12 @@ export function createWalkthrough({
     const aliases = { up: 'forward', down: 'backward', back: 'backward' };
     const name = aliases[direction] ?? direction;
     if (!['forward', 'backward', 'left', 'right'].includes(name)) return;
-    if (active && value) touchMoves.add(name);
+    if (active && !paused && value) touchMoves.add(name);
     else touchMoves.delete(name);
   }
 
   function keyDown(event) {
+    if (paused) return;
     if (active && event.code === 'KeyL' && !event.repeat && !event.ctrlKey && !event.metaKey
       && !(event.target instanceof HTMLElement && (event.target.isContentEditable || event.target.matches('input, textarea, select')))) {
       event.preventDefault();
@@ -286,7 +291,7 @@ export function createWalkthrough({
   }
 
   function pointerDown(event) {
-    if (!active || event.button !== 0 || dragPointer !== null
+    if (!active || paused || event.button !== 0 || dragPointer !== null
       || (event.pointerType !== 'touch' && event.isPrimary === false)) return;
     event.preventDefault();
     dragPointer = event.pointerId;
@@ -296,7 +301,7 @@ export function createWalkthrough({
   }
 
   function lockMouse() {
-    if (active && domElement.requestPointerLock && document.pointerLockElement !== domElement) {
+    if (active && !paused && domElement.requestPointerLock && document.pointerLockElement !== domElement) {
       // Explicit mouse-lock control leaves normal clicks available for objects.
       try {
         const request = domElement.requestPointerLock();
@@ -352,6 +357,12 @@ export function createWalkthrough({
     look,
     setMove,
     lockMouse,
+    setPaused(value) {
+      paused = Boolean(value);
+      clearMoves();
+      if(paused && document.pointerLockElement === domElement) document.exitPointerLock?.();
+    },
+    get paused() { return paused; },
     get active() { return active; },
     get locked() { return active && document.pointerLockElement === domElement; },
     get floor() { return floor; },

@@ -13,6 +13,8 @@
       <div id="scene-container" aria-label="Interactive 3D model of Barangay Bucana"></div>
       <header class="topbar">
         <div class="top-actions">
+          <button id="sound-toggle" class="icon-button" type="button" aria-pressed="false" aria-label="Mute alarm sound" title="Mute alarm sound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/><path class="sound-slash" d="m3 3 18 18" style="display:none"/></svg></button>
+          <button id="labels-toggle" class="labels-toggle" type="button" aria-pressed="false" aria-label="Show security feature labels"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h12v8H3zM8 12v5h13m-4-4 4 4-4 4" /></svg><span class="labels-text-long">Security labels</span><span class="labels-text-short">Labels</span></button>
           <button id="lighting-toggle" class="lighting-toggle" type="button" aria-pressed="false" aria-label="Switch to night lighting"><span id="lighting-icon" aria-hidden="true">&#9728;</span><span id="lighting-label">Daylight</span><span class="toggle-track"><span></span></span></button>
           <button id="fullscreen-button" class="icon-button" type="button" aria-label="Enter fullscreen" title="Fullscreen"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" /></svg></button>
         </div>
@@ -43,10 +45,45 @@
             <button type="button" class="room-button" data-room="captain"><span>Captain's Office</span><span aria-hidden="true">&#8599;</span></button>
             <button type="button" class="room-button" data-room="annex"><span>Left Upper Wing</span><span aria-hidden="true">&#8599;</span></button>
           </div>
-          <div id="walk-instructions"><p id="walk-hint">Drag to look &middot; WASD to move</p><p class="desktop-walk-instructions">Click nearby doors, drawers or the emergency button, or aim and press <kbd>E</kbd>. <kbd>L</kbd> locks mouse look; <kbd>Esc</kbd> releases it.</p><p class="touch-walk-instructions">Drag to look. Tap nearby doors, drawers or the emergency button, or aim and use the action button. Use the arrows to walk.</p></div>
+          <div id="walk-instructions"><p id="walk-hint">Drag to look &middot; WASD to move</p><p class="desktop-walk-instructions">Click nearby objects, or aim and press <kbd>E</kbd>. Gold demo keys unlock records cabinets. <kbd>L</kbd> locks mouse look; <kbd>Esc</kbd> releases it.</p><p class="touch-walk-instructions">Drag to look. Tap nearby objects or use the action button. Gold demo keys unlock records cabinets. Use the arrows to walk.</p></div>
         </section>
+        <details id="rfid-controls" class="security-controls">
+          <summary>RFID access <span>DEMO</span></summary>
+          <div class="security-demo">
+            <p>Virtual cards control entry to the two restricted rooms.</p>
+            <label for="rfid-card">Your demo RFID card</label>
+            <select id="rfid-card">
+              <option value="visitor">Visitor — no access</option>
+              <option value="staff">Staff — Session Hall</option>
+              <option value="captain">Captain — both rooms</option>
+              <option value="expired">Expired staff card</option>
+            </select>
+            <button type="button" data-rfid-reader="session">Go to Session Hall reader</button>
+            <button type="button" data-rfid-reader="annex">Go to Upper Wing reader</button>
+            <p>Tap the wall reader, or aim and press E. Doors relock after 8 seconds. No card is needed to exit.</p>
+            <p id="rfid-status" role="status" aria-live="polite">Visitor card selected.</p>
+          </div>
+        </details>
+        <details id="security-controls" class="security-controls">
+          <summary>Entrance security <span>DEMO</span></summary>
+          <div class="security-demo">
+            <p>Simulated screening inside this 3D model.</p>
+            <p>The main-door motion sensor triggers the alarm when you walk near the entrance. Use the speaker button to mute or unmute the siren.</p>
+            <label for="security-item">Visitor's test item</label>
+            <select id="security-item"><option value="none">No weapon</option><option value="gun">Gun</option><option value="knife">Knife</option></select>
+            <button id="security-entrance" type="button">Go to detector</button>
+            <button id="security-reset" type="button">Reset demo &amp; alarm</button>
+            <p id="security-status" role="status" aria-live="polite">Choose a test item, then walk through the arch.</p>
+          </div>
+        </details>
         <div class="settings-section"><button id="settings-toggle" type="button" aria-expanded="false" aria-controls="gui-container"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6M10 15v6" /></svg><span>View settings</span><span id="settings-chevron" aria-hidden="true">+</span></button><div id="gui-container" hidden></div></div>
       </aside>
+      <section id="security-annotations" hidden aria-label="Security feature callouts" role="list"></section>
+      <div id="annotation-toolbar" class="annotation-toolbar" hidden>
+        <span id="annotation-floor"></span>
+        <select id="annotation-feature" aria-label="Show a security feature"></select>
+        <small>Choose a feature to follow its arrow. Drag to orbit.</small>
+      </div>
       <div id="crosshair" hidden aria-hidden="true"></div>
       <div id="object-controls" hidden>
         <button id="interact-button" type="button" disabled aria-pressed="false"><span class="interact-key" aria-hidden="true">E</span><span id="interact-label">Aim at an interactive object</span></button>
@@ -59,11 +96,19 @@
         <button type="button" data-move="backward" aria-label="Walk backward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6" /></svg></button>
         <button type="button" data-move="right" aria-label="Walk right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>
       </div>
-      <aside id="emergency-banner" role="alert" aria-live="assertive" hidden><span class="emergency-symbol" aria-hidden="true">!</span><div><strong>EMERGENCY ALERT</strong><span>Warning lights active on both floors.<br>Use the first-floor emergency button to reset.</span></div></aside>
+      <aside id="emergency-banner" role="alert" aria-live="assertive" hidden><span class="emergency-symbol" aria-hidden="true">!</span><div><strong>EMERGENCY ALERT</strong><span>Warning lights active on both floors.<br>Reset with the first-floor emergency button.<br>The speaker button mutes the alarm sound.</span></div></aside>
       <div class="orientation"><div class="compass" aria-label="Camera orientation relative to model north"><span>N</span><svg id="compass-arrow" viewBox="0 0 60 60" aria-hidden="true"><path class="north-arrow" d="m30 9-8 25 8-4 8 4Z"/><path class="south-arrow" d="m30 51-8-17 8-4 8 4Z"/></svg></div><div class="scale-bar"><span id="scale-label">5 m</span><div id="scale-line"></div></div></div>
       <footer class="bottom-bar"><div id="interaction-hints" class="interaction-hints"><span>Drag to orbit</span><span>Scroll to zoom</span><span>Right-drag to pan</span></div><div class="concept-note">Interactive architectural model</div></footer>
       <div id="loading-screen" role="status"><div class="loading-logo">B</div><strong>Preparing Barangay Bucana</strong><span>Furnishing the rooms&hellip;</span></div>
       <div id="error-screen" hidden role="alert"><h2>The 3D view couldn't start.</h2><p id="error-message"></p><button type="button" id="retry-button">Reload the view</button></div>
+      <dialog id="records-dialog" aria-labelledby="record-title" aria-describedby="record-notice">
+        <div class="record-heading"><span>SAMPLE BARANGAY RECORD</span><button id="records-close" type="button" aria-label="Close document" autofocus>&times;</button></div>
+        <h2 id="record-title"></h2>
+        <p id="record-reference"></p>
+        <p id="record-notice">Fictional sample for this 3D model. No real personal or official records.</p>
+        <dl id="record-fields"></dl>
+        <p class="record-help">Close this document or press Esc to continue exploring.</p>
+      </dialog>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>
