@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, cylinder, beam, label, materials } from './primitives.js';
-import { createCaptainFigure } from './CaptainFigure.js';
 import { createDrawer, createCabinetDoor, createCaptainOfficeDoor } from './InteractiveFurniture.js';
+import { HALL_STAIRS, CAPTAIN_WORKSPACE } from './HallLayout.js';
 
 // Merge static furniture by material once; retain glazed partitions and text as separate meshes.
 // This keeps a richly furnished hall inexpensive to draw without changing its cutaway groups.
@@ -237,43 +237,45 @@ export function createInteriorDetails() {
   box(groundFloor, 0.095, 1.08, 3.0, cream, 0.81, floorY + 0.54, -1.96);
   box(groundFloor, 0.018, 0.91, 3.0, acrylic, 0.81, floorY + 1.535, -1.96).castShadow = false;
   box(groundFloor, 0.09, 0.055, 3.05, materials.green, 0.81, floorY + 2.025, -1.96);
-  const mediationTop = cylinder(groundFloor, 1, 1, 0.1, materials.wood, 3.0, floorY + 0.79, -1.52, 44);
+  const mediationTop = cylinder(groundFloor, 1, 1, 0.1, materials.wood, 3.0, floorY + 0.79, -1.85, 44);
   mediationTop.scale.set(0.92, 1, 1.21);
-  for (const z of [-2.12, -0.92]) cylinder(groundFloor, 0.16, 0.28, 0.7, materials.dark, 3.0, floorY + 0.35, z);
-  chair(groundFloor, 3.0, -3.11, Math.PI);
-  chair(groundFloor, 3.0, 0.05, 0);
-  for (const z of [-2.04, -1.07]) {
+  for (const z of [-2.45, -1.25]) cylinder(groundFloor, 0.16, 0.28, 0.7, materials.dark, 3.0, floorY + 0.35, z);
+  chair(groundFloor, 3.0, -3.35, Math.PI);
+  chair(groundFloor, 1.65, 0.05, -Math.PI / 2);
+  for (const z of [-2.37, -1.4]) {
     chair(groundFloor, 1.65, z, -Math.PI / 2);
     chair(groundFloor, 4.35, z, Math.PI / 2);
   }
-  book(groundFloor, 3.18, floorY + 0.85, -1.25, redBook);
-  box(groundFloor, 0.24, 0.01, 0.32, paper, 2.7, floorY + 0.85, -1.67);
+  book(groundFloor, 3.18, floorY + 0.85, -1.58, redBook);
+  box(groundFloor, 0.24, 0.01, 0.32, paper, 2.7, floorY + 0.85, -2.0);
   frontPlaque(groundFloor, 'LUPON TAGAPAMAYAPA', 2.4, 0.22, 3.0, 2.38, 0.45, true);
   plant(groundFloor, -5.28, -2.97, floorY, 1.1);
   plant(groundFloor, 5.22, -3.1, floorY, 1.1);
 
-  // Straight open stair to the upper landing; seventeen clearly separated risers.
-  const stairX = 4.65;
-  const steps = 17;
-  const run = 2.45;
+  // A 2.2 m stair flight opens onto a clear 1.35 m-deep rear landing.
+  const stairX = (HALL_STAIRS.minX + HALL_STAIRS.maxX) / 2;
+  const stairWidth = HALL_STAIRS.maxX - HALL_STAIRS.minX;
+  const steps = HALL_STAIRS.steps;
+  const run = HALL_STAIRS.topZ - HALL_STAIRS.bottomZ;
   const rise = (upperY - floorY) / steps;
   const tread = run / steps;
   for (let i = 0; i < steps; i++) {
     const h = rise * (i + 1);
-    box(groundFloor, 1.68, h, tread + 0.012, cream, stairX, floorY + h / 2, 0.86 + i * tread);
-    box(groundFloor, 1.72, 0.025, 0.032, materials.green, stairX, floorY + h + 0.013, 0.778 + i * tread);
+    const z = HALL_STAIRS.bottomZ + (i + 0.5) * tread;
+    box(groundFloor, stairWidth, h, tread + 0.012, cream, stairX, floorY + h / 2, z);
+    box(groundFloor, stairWidth + 0.04, 0.025, 0.032, materials.green, stairX, floorY + h + 0.013, HALL_STAIRS.bottomZ + i * tread);
   }
-  for (const side of [-1, 1]) {
-    const x = stairX + side * 0.9;
-    const start = new THREE.Vector3(x, floorY + 1.04, 0.75);
-    const end = new THREE.Vector3(x, upperY + 1.04, 3.26);
+  for (const x of [HALL_STAIRS.railLeft, HALL_STAIRS.railRight]) {
+    const start = new THREE.Vector3(x, floorY + 1.04, HALL_STAIRS.bottomZ - 0.05);
+    const end = new THREE.Vector3(x, upperY + 1.04, HALL_STAIRS.topZ - 0.05);
     beam(groundFloor, start, end, 0.036, materials.metal);
     for (let i = 0; i < steps; i += 2) {
       const h = rise * (i + 1);
-      beam(groundFloor, new THREE.Vector3(x, floorY + h, 0.86 + i * tread), new THREE.Vector3(x, floorY + h + 0.98, 0.86 + i * tread), 0.018, materials.metal, 6);
+      const z = HALL_STAIRS.bottomZ + (i + 0.5) * tread;
+      beam(groundFloor, new THREE.Vector3(x, floorY + h, z), new THREE.Vector3(x, floorY + h + 0.98, z), 0.018, materials.metal, 6);
     }
   }
-  frontPlaque(groundFloor, '2F  SESSION HALL  /  CAPTAIN', 1.8, 0.18, 4.65, 2.56, 3.74, true);
+  frontPlaque(groundFloor, '2F  SESSION HALL  /  CAPTAIN', 1.8, 0.18, stairX, 2.56, 3.74, true);
 
   // Upstairs oval session table and nine council seats, plus the presiding chair.
   const conferenceTop = cylinder(upperFloor, 1, 1, 0.12, materials.wood, -2.25, upperY + 0.81, -0.12, 56);
@@ -308,60 +310,70 @@ export function createInteriorDetails() {
   box(upperFloor, 0.105, 2.35, 0.08, materials.green, 1.14, upperY + 1.175, 2.2);
   box(upperFloor, 0.105, 0.18, 1.15, materials.green, 1.14, upperY + 2.27, 1.65);
   createCaptainOfficeDoor(upperFloor, interactions, upperY, acrylic);
-  const captainDesk = desk(upperFloor, 3.44, -1.3, 2.24, 1.02, upperY);
+  const captainX = CAPTAIN_WORKSPACE.x;
+  const captainDesk = desk(upperFloor, captainX, CAPTAIN_WORKSPACE.deskZ, 2.24, 1.02, upperY);
+  captainDesk.name = 'Captain executive desk and belongings';
   deskDrawers(captainDesk, 'captain', 1, 2.24, 1.02);
-  computer(captainDesk, 0.57, 0.03);
+  computer(captainDesk, 0.57, 0.03, 0.81, Math.PI);
   book(captainDesk, -0.72, 0.825, 0.12, blueBook, 0.08);
   box(captainDesk, 0.31, 0.012, 0.25, paper, -0.22, 0.82, -0.22);
-  frontPlaque(captainDesk, 'PUNONG BARANGAY', 0.83, 0.13, -0.29, 0.88, -0.43);
-  chair(upperFloor, 3.44, -0.25, 0, upperY, true);
-  const captainFigure = createCaptainFigure();
-  captainFigure.position.set(3.44, upperY, -0.25);
-  upperFloor.add(captainFigure);
-  chair(upperFloor, 2.77, -2.4, Math.PI, upperY);
-  chair(upperFloor, 4.04, -2.4, Math.PI, upperY);
-  // Low credenza, framed wall certificate, vertical files and a compact guest sofa.
+  const deskName = frontPlaque(captainDesk, 'PUNONG BARANGAY', 0.83, 0.13, -0.29, 0.88, 0.43);
+  deskName.rotation.y = 0;
+  const captainChair = chair(upperFloor, captainX, CAPTAIN_WORKSPACE.chairZ, Math.PI, upperY, true);
+  captainChair.name = 'Captain executive chair';
+  CAPTAIN_WORKSPACE.visitorZs.forEach((z, index) => {
+    const visitor = chair(upperFloor, CAPTAIN_WORKSPACE.visitorX, z, Math.PI / 2, upperY);
+    visitor.name = `Captain office visitor chair ${index + 1} beside plant`;
+  });
+  // Low credenza and vertical files along the front wall.
   // The credenza is a hollow cupboard with shelves and four hinged doors.
+  // Storage stays away from the stairs and right-hand visitor seating.
+  const credenza = new THREE.Group();
+  credenza.name = 'Captain front-wall storage cupboard';
+  credenza.position.set(captainX + 3.58, 0, -2.93);
+  credenza.rotation.y = Math.PI;
+  upperFloor.add(credenza);
   for (const y of [0.0275, 0.405, 0.8225])
-    box(upperFloor, 2.18, 0.055, 0.42, materials.wood, 3.58, upperY + y, 0.57);
-  box(upperFloor, 2.18, 0.795, 0.032, materials.wood, 3.58, upperY + 0.425, 0.764);
+    box(credenza, 2.18, 0.055, 0.42, materials.wood, 3.58, upperY + y, 0.57);
+  box(credenza, 2.18, 0.795, 0.032, materials.wood, 3.58, upperY + 0.425, 0.764);
   for (const x of [2.515, 3.06, 3.58, 4.1, 4.645])
-    box(upperFloor, 0.05, 0.795, 0.4, materials.wood, x, upperY + 0.425, 0.57);
+    box(credenza, 0.05, 0.795, 0.4, materials.wood, x, upperY + 0.425, 0.57);
   for (let i = 0; i < 4; i++) {
     const x = 2.8 + i * 0.52;
-    createCabinetDoor(upperFloor, interactions, {
+    createCabinetDoor(credenza, interactions, {
       id: `captain-cupboard-door-${i + 1}`, label: `Captain cupboard door ${i + 1}`, floor: 1,
       position: [x, upperY + 0.45, 0.342], width: 0.44, height: 0.64,
       doorMaterial: cream, handleMaterial: brass,
     });
     for (let file = 0; file < 3; file++)
-      box(upperFloor, 0.065, 0.25, 0.24, file % 2 ? redBook : blueBook,
+      box(credenza, 0.065, 0.25, 0.24, file % 2 ? redBook : blueBook,
         x - 0.11 + file * 0.08, upperY + 0.565, 0.565);
-    box(upperFloor, 0.34, 0.09, 0.24, paper, x, upperY + 0.11, 0.565);
+    box(credenza, 0.34, 0.09, 0.24, paper, x, upperY + 0.11, 0.565);
   }
-  for (let i = 0; i < 7; i++) box(upperFloor, 0.07, 0.31 + (i % 3) * 0.025, 0.22, i % 2 ? redBook : blueBook, 2.91 + i * 0.09, upperY + 1.025, 0.55);
-  box(upperFloor, 1.74, 0.22, 0.72, leather, 2.36, upperY + 0.41, 2.95);
-  box(upperFloor, 1.74, 0.54, 0.14, leather, 2.36, upperY + 0.7, 3.28);
-  for (const x of [1.43, 3.29]) box(upperFloor, 0.14, 0.51, 0.79, leather, x, upperY + 0.485, 2.95);
-  box(upperFloor, 1.17, 0.07, 0.48, materials.wood, 2.36, upperY + 0.37, 2.08);
-  for (const x of [1.9, 2.82]) box(upperFloor, 0.05, 0.35, 0.05, materials.dark, x, upperY + 0.175, 2.08);
-  plant(upperFloor, 5.35, 0.4, upperY, 1.18);
-  frontPlaque(upperFloor, 'PUNONG BARANGAY', 2.55, 0.24, 3.64, upperY + 2.11, 0.71);
-  wallClock(upperFloor, 4.8, upperY + 1.9, 0.72);
+  for (let i = 0; i < 7; i++) box(credenza, 0.07, 0.31 + (i % 3) * 0.025, 0.22, i % 2 ? redBook : blueBook, 2.91 + i * 0.09, upperY + 1.025, 0.55);
+  // Keep the space between the office doorway and stair railing open.
+  plant(upperFloor, 5.35, -0.4, upperY, 1.18);
+  const captainName = frontPlaque(upperFloor, 'PUNONG BARANGAY', 1.9, 0.16, captainX, 4.06, -3.87);
+  captainName.rotation.y = 0;
+  const clockMount = new THREE.Group();
+  clockMount.position.set(captainX + 1.88, upperY + 1.9, -3.84);
+  clockMount.rotation.y = Math.PI;
+  upperFloor.add(clockMount);
+  wallClock(clockMount, 0, 0, 0);
 
   // Upper landing balustrade guards the stair opening.
-  beam(upperFloor, new THREE.Vector3(3.7, upperY + 1.02, 0.68), new THREE.Vector3(5.55, upperY + 1.02, 0.68), 0.035, materials.metal);
-  beam(upperFloor, new THREE.Vector3(3.7, upperY + 1.02, 0.68), new THREE.Vector3(3.7, upperY + 1.02, 3.3), 0.035, materials.metal);
-  for (let i = 0; i < 8; i++) cylinder(upperFloor, 0.018, 0.018, 1.0, materials.metal, 3.7, upperY + 0.5, 0.68 + i * 0.37, 6);
-  for (let i = 0; i < 6; i++) cylinder(upperFloor, 0.018, 0.018, 1.0, materials.metal, 3.7 + i * 0.37, upperY + 0.5, 0.68, 6);
+  beam(upperFloor, new THREE.Vector3(HALL_STAIRS.railLeft, upperY + 1.02, HALL_STAIRS.openingFront), new THREE.Vector3(HALL_STAIRS.railRight, upperY + 1.02, HALL_STAIRS.openingFront), 0.035, materials.metal);
+  beam(upperFloor, new THREE.Vector3(HALL_STAIRS.railLeft, upperY + 1.02, HALL_STAIRS.openingFront), new THREE.Vector3(HALL_STAIRS.railLeft, upperY + 1.02, HALL_STAIRS.topZ), 0.035, materials.metal);
+  for (let z = HALL_STAIRS.openingFront; z <= HALL_STAIRS.topZ; z += 0.34) cylinder(upperFloor, 0.018, 0.018, 1.0, materials.metal, HALL_STAIRS.railLeft, upperY + 0.5, z, 6);
+  for (let x = HALL_STAIRS.railLeft; x <= HALL_STAIRS.railRight; x += 0.34) cylinder(upperFloor, 0.018, 0.018, 1.0, materials.metal, x, upperY + 0.5, HALL_STAIRS.openingFront, 6);
 
   ceilingLight(groundFloor, -3.0, -1.5, 2.64, 12);
   ceilingLight(groundFloor, -3.4, 2.2, 2.64, 10);
   ceilingLight(groundFloor, 3.0, -1.5, 2.64, 10);
-  ceilingLight(groundFloor, 4.5, 2.2, 2.64, 8);
+  ceilingLight(groundFloor, 4.5, -0.5, 2.64, 8);
   ceilingLight(upperFloor, -2.25, -1.55, 5.58, 14);
   ceilingLight(upperFloor, -2.25, 1.55, 5.58, 14);
-  ceilingLight(upperFloor, 3.4, -1.3, 5.58, 11);
+  ceilingLight(upperFloor, captainX, CAPTAIN_WORKSPACE.deskZ, 5.58, 11);
   consolidateFurniture(groundFloor);
   consolidateFurniture(upperFloor);
 
@@ -372,7 +384,7 @@ export function createInteriorDetails() {
     { id: 'tanod', name: 'Tanod / Blotter Desk', floor: 0, position: [-1.3, 1.76, 1.4], yaw: 1.891, pitch: -0.12, description: 'Visit the blotter desk, logbooks and filing cabinet. Open the desk and file drawers to see the records inside.' },
     { id: 'mediation', name: 'Lupon Mediation Room', floor: 0, position: [2.5, 1.76, 0.55], yaw: -0.237, pitch: -0.12, description: 'Explore the six-seat mediation table, case documents and privacy partition.' },
     { id: 'session', name: 'Session Hall', floor: 1, position: [-4.95, 4.63, -2.32], yaw: -2.254, pitch: -0.08, description: 'The council chamber has an oval table, ten council seats, microphones and meeting papers.' },
-    { id: 'captain', name: 'Punong Barangay Office', floor: 1, position: [2.0, 4.63, -3.35], yaw: -2.628, pitch: -0.12, description: 'The captain sits behind the executive desk. Operate its drawers, the cupboard doors and the office door yourself.' },
+    { id: 'captain', name: 'Punong Barangay Office', floor: 1, position: [captainX, 4.63, 1.8], yaw: -0.86, pitch: 0.065, description: 'The captain sits on the front side of the desk. Visitor chairs sit beside the right-hand plant, below the live CCTV display.' },
   ];
 
   const obstacles = [];
@@ -388,8 +400,8 @@ export function createInteriorDetails() {
   obstacle(1, 1.0875, 1.1925, 2.16, 2.24);
   // Upper landing rails guard the real stair opening. The north end opens
   // directly onto the landing so visitors can walk up and down the flight.
-  obstacle(1, 3.67, 3.73, 0.65, 3.3);
-  obstacle(1, 3.67, 5.58, 0.65, 0.71);
+  obstacle(1, HALL_STAIRS.railLeft - 0.03, HALL_STAIRS.railLeft + 0.03, HALL_STAIRS.openingFront - 0.03, HALL_STAIRS.topZ);
+  obstacle(1, HALL_STAIRS.railLeft - 0.03, HALL_STAIRS.railRight + 0.03, HALL_STAIRS.openingFront - 0.03, HALL_STAIRS.openingFront + 0.03);
 
   obstacle(0, -5.18, -1.02, -2.19, -1.31);
   for (let i = 0; i < 3; i++) obstacle(0, -4.77 + i * 1.34, -4.13 + i * 1.34, -1.23, -0.59);
@@ -398,10 +410,10 @@ export function createInteriorDetails() {
   obstacle(0, -3.82, -3.18, 2.68, 3.32);
   for (const x of [-4.08, -2.93]) obstacle(0, x - 0.24, x + 0.24, 0.98, 1.46);
   obstacle(0, -5.71, -4.89, 3.12, 3.56);
-  obstacle(0, 2.08, 3.92, -2.73, -0.31);
-  obstacle(0, 2.76, 3.24, -3.35, -2.87);
-  obstacle(0, 2.76, 3.24, -0.19, 0.29);
-  for (const z of [-2.04, -1.07]) {
+  obstacle(0, 2.08, 3.92, -3.06, -0.64);
+  obstacle(0, 2.76, 3.24, -3.59, -3.11);
+  obstacle(0, 1.41, 1.89, -0.19, 0.29);
+  for (const z of [-2.37, -1.4]) {
     obstacle(0, 1.41, 1.89, z - 0.24, z + 0.24);
     obstacle(0, 4.11, 4.59, z - 0.24, z + 0.24);
   }
@@ -413,21 +425,20 @@ export function createInteriorDetails() {
     obstacle(1, -0.8, -0.16, z - 0.32, z + 0.32);
   }
   for (const z of [-2.98, 2.76]) obstacle(1, -2.57, -1.93, z - 0.32, z + 0.32);
-  obstacle(1, 2.32, 4.56, -1.81, -0.79);
-  obstacle(1, 3.12, 3.76, -0.57, 0.07);
-  for (const x of [2.77, 4.04]) obstacle(1, x - 0.24, x + 0.24, -2.64, -2.16);
-  obstacle(1, 2.49, 4.67, 0.36, 0.78);
-  obstacle(1, 1.36, 3.36, 2.555, 3.345);
-  obstacle(1, 1.775, 2.945, 1.84, 2.32);
+  obstacle(1, captainX - 1.12, captainX + 1.12, -1.81, -0.79);
+  obstacle(1, captainX - 0.32, captainX + 0.32, CAPTAIN_WORKSPACE.chairZ - 0.32, CAPTAIN_WORKSPACE.chairZ + 0.32);
+  for (const z of CAPTAIN_WORKSPACE.visitorZs)
+    obstacle(1, CAPTAIN_WORKSPACE.visitorX - 0.25, CAPTAIN_WORKSPACE.visitorX + 0.25, z - 0.24, z + 0.24);
+  obstacle(1, captainX - 1.09, captainX + 1.09, -3.71, -3.29);
   obstacle(1, -5.46, -5.02, -3.2, -2.76);
   obstacle(1, 0.10, 0.60, -3.25, -2.75);
-  obstacle(1, 5.1, 5.6, 0.15, 0.65);
+  obstacle(1, 5.1, 5.6, -0.65, -0.15);
 
   const walkData = {
     floors: [floorY, upperY],
     bounds: { minX: -5.7, maxX: 5.7, minZ: -3.7, maxZ: 3.7 },
-    stairs: { minX: 3.81, maxX: 5.49, minZ: 0.78, maxZ: 3.3, bottomZ: 0.78, topZ: 3.3 },
+    stairs: { ...HALL_STAIRS, minZ:HALL_STAIRS.bottomZ, maxZ:HALL_STAIRS.topZ },
     obstacles,
   };
-  return { group, lights, groundFloor, upperFloor, rooms, walkData, captainFigure, interactions };
+  return { group, lights, groundFloor, upperFloor, rooms, walkData, interactions };
 }

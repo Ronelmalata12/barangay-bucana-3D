@@ -4,6 +4,8 @@ import { GUI } from 'dat.gui';
 import { createAdminBuilding } from './models/AdminBuilding.js';
 import { createWalkthrough } from './Walkthrough.js';
 import { createInteractions } from './Interactions.js';
+import { createCCTVSystem } from './CCTVSystem.js';
+import { createEmergencySystem } from './models/EmergencySystem.js';
 import './style.css';
 
 const parameters = { night:false, autoRotate:false, shadows:true, rooftops:true };
@@ -16,7 +18,7 @@ const viewContent = {
 const container = document.querySelector('#scene-container');
 let activeView = 'overview';
 let transition = null;
-let renderer, scene, camera, controls, admin, walkthrough, interactions, sun, hemisphere, ambient, sky;
+let renderer, scene, camera, controls, admin, walkthrough, interactions, cctv, emergency, sun, hemisphere, ambient, sky;
 let actionTimer;
 let lastTime = 0;
 let ready = false;
@@ -72,6 +74,7 @@ function setLighting(night) {
   button.setAttribute('aria-label',night?'Switch to daylight':'Switch to night lighting');
   document.querySelector('#lighting-label').textContent=night?'Evening':'Daylight';
   document.querySelector('#lighting-icon').textContent=night?'☾':'☀';
+  cctv?.invalidate();
 }
 
 function applySections() {
@@ -84,8 +87,8 @@ function updateModeUI(inside) {
   for(const id of ['room-navigation','exit-button','walk-controls','crosshair','object-controls']) document.querySelector(`#${id}`).hidden=!inside;
   document.querySelector('#enter-button').hidden=inside;
   document.querySelector('.orientation').hidden=inside;
-  document.querySelector('#interaction-hints').textContent=inside?'WASD to walk · Drag to look · Click / E to open':'Drag to orbit · Scroll to zoom · Right-drag to pan';
-  renderer.domElement.setAttribute('aria-label',inside?'Inside Barangay Bucana. Drag to look, use WASD to walk, and click nearby doors or drawers to open and close them. Press E to operate the object you are looking at.':'Barangay Bucana exterior. Drag to orbit, scroll to zoom, right-drag to pan.');
+  document.querySelector('#interaction-hints').textContent=inside?'WASD to walk · Drag to look · Click / E to interact':'Drag to orbit · Scroll to zoom · Right-drag to pan';
+  renderer.domElement.setAttribute('aria-label',inside?'Inside Barangay Bucana. Drag to look, use WASD to walk, and click nearby doors, drawers or the emergency button. Press E to operate the object you are looking at.':'Barangay Bucana exterior. Drag to orbit, scroll to zoom, right-drag to pan.');
 }
 
 function leaveWalk() {
@@ -224,15 +227,21 @@ function initialize() {
   admin=createAdminBuilding();
   admin.group.position.set(0,0,0);
   scene.add(admin.group);
+  cctv=createCCTVSystem({renderer,scene,model:admin,sky});
+  emergency=createEmergencySystem({model:admin,reducedMotion,onChange:active=>{
+    document.querySelector('#emergency-banner').hidden=!active;
+    document.body.classList.toggle('emergency-active',active);
+    cctv.invalidate();
+  }});
   walkthrough=createWalkthrough({camera,domElement:renderer.domElement,model:admin,onRoomChange:updateRoom,onFloorChange:()=>updateRoom(walkthrough.room),onLockChange:locked=>{
-    document.querySelector('#walk-hint').textContent=locked?'Move the mouse to look · E to open · Esc frees the cursor':'Drag to look · L locks the mouse · E to open';
+    document.querySelector('#walk-hint').textContent=locked?'Move the mouse to look · E to interact · Esc frees the cursor':'Drag to look · L locks the mouse · E to interact';
   }});
   interactions=createInteractions({camera,domElement:renderer.domElement,model:admin,walkthrough,
     onTargetChange:(item,prompt)=>{
       const button=document.querySelector('#interact-button');
       button.disabled=!item;
       button.setAttribute('aria-pressed',String(Boolean(item?.target)));
-      document.querySelector('#interact-label').textContent=prompt||'Aim at a door or drawer';
+      document.querySelector('#interact-label').textContent=prompt||'Aim at an interactive object';
       document.querySelector('#crosshair').classList.toggle('can-interact',Boolean(item));
     },
     onAction:message=>{
@@ -276,7 +285,7 @@ function initialize() {
   selectView('overview',true);
   resize();
   ready=true;
-  window.bucana={scene,camera,renderer,controls,admin,walkthrough,interactions,selectView,enterHall,visitRoom,setLighting,get view(){return activeView;},get settings(){return {...parameters};}};
+  window.bucana={scene,camera,renderer,controls,admin,walkthrough,interactions,cctv,emergency,selectView,enterHall,visitRoom,setLighting,get view(){return activeView;},get settings(){return {...parameters};}};
   requestAnimationFrame(animate);
 }
 
@@ -306,6 +315,7 @@ function animate(time) {
   const delta=Math.min((time-lastTime)/1000,0.05);
   lastTime=time;
   interactions.update(delta);
+  emergency.update(time);
   if(walkthrough.active) walkthrough.update(delta);
   else {
     if(transition){
@@ -324,6 +334,7 @@ function animate(time) {
   }
   sky.position.copy(camera.position);
   renderer.render(scene,camera);
+  cctv.update(time,camera);
   const loading=document.querySelector('#loading-screen');
   if(!loading.classList.contains('loaded')){loading.classList.add('loaded');setTimeout(()=>{loading.hidden=true;},550);}
   requestAnimationFrame(animate);

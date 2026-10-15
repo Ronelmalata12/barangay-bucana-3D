@@ -43,13 +43,13 @@
             <button type="button" class="room-button" data-room="captain"><span>Captain's Office</span><span aria-hidden="true">&#8599;</span></button>
             <button type="button" class="room-button" data-room="annex"><span>Left Upper Wing</span><span aria-hidden="true">&#8599;</span></button>
           </div>
-          <div id="walk-instructions"><p id="walk-hint">Drag to look &middot; WASD to move</p><p class="desktop-walk-instructions">Click nearby doors and drawers, or aim and press <kbd>E</kbd>. <kbd>L</kbd> locks mouse look; <kbd>Esc</kbd> releases it.</p><p class="touch-walk-instructions">Drag to look. Tap nearby doors and drawers, or aim and tap Open. Use the arrows to walk.</p></div>
+          <div id="walk-instructions"><p id="walk-hint">Drag to look &middot; WASD to move</p><p class="desktop-walk-instructions">Click nearby doors, drawers or the emergency button, or aim and press <kbd>E</kbd>. <kbd>L</kbd> locks mouse look; <kbd>Esc</kbd> releases it.</p><p class="touch-walk-instructions">Drag to look. Tap nearby doors, drawers or the emergency button, or aim and use the action button. Use the arrows to walk.</p></div>
         </section>
         <div class="settings-section"><button id="settings-toggle" type="button" aria-expanded="false" aria-controls="gui-container"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6M10 15v6" /></svg><span>View settings</span><span id="settings-chevron" aria-hidden="true">+</span></button><div id="gui-container" hidden></div></div>
       </aside>
       <div id="crosshair" hidden aria-hidden="true"></div>
       <div id="object-controls" hidden>
-        <button id="interact-button" type="button" disabled aria-pressed="false"><span class="interact-key" aria-hidden="true">E</span><span id="interact-label">Aim at a door or drawer</span></button>
+        <button id="interact-button" type="button" disabled aria-pressed="false"><span class="interact-key" aria-hidden="true">E</span><span id="interact-label">Aim at an interactive object</span></button>
         <p id="object-status" role="status" aria-live="polite"></p>
       </div>
       <div id="walk-controls" hidden aria-label="Walking controls">
@@ -59,6 +59,7 @@
         <button type="button" data-move="backward" aria-label="Walk backward"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m-6-6 6 6 6-6" /></svg></button>
         <button type="button" data-move="right" aria-label="Walk right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg></button>
       </div>
+      <aside id="emergency-banner" role="alert" aria-live="assertive" hidden><span class="emergency-symbol" aria-hidden="true">!</span><div><strong>EMERGENCY ALERT</strong><span>Warning lights active on both floors.<br>Use the first-floor emergency button to reset.</span></div></aside>
       <div class="orientation"><div class="compass" aria-label="Camera orientation relative to model north"><span>N</span><svg id="compass-arrow" viewBox="0 0 60 60" aria-hidden="true"><path class="north-arrow" d="m30 9-8 25 8-4 8 4Z"/><path class="south-arrow" d="m30 51-8-17 8-4 8 4Z"/></svg></div><div class="scale-bar"><span id="scale-label">5 m</span><div id="scale-line"></div></div></div>
       <footer class="bottom-bar"><div id="interaction-hints" class="interaction-hints"><span>Drag to orbit</span><span>Scroll to zoom</span><span>Right-drag to pan</span></div><div class="concept-note">Interactive architectural model</div></footer>
       <div id="loading-screen" role="status"><div class="loading-logo">B</div><strong>Preparing Barangay Bucana</strong><span>Furnishing the rooms&hellip;</span></div>

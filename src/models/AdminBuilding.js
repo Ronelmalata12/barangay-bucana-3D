@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, cylinder, beam, label, materials } from './primitives.js';
 import { createInteriorDetails } from './InteriorDetails.js';
 import { createLeftAnnex } from './LeftAnnex.js';
+import { HALL_STAIRS } from './HallLayout.js';
 
 // Consolidate within each original group so roof, floor and facade cutaways stay independent.
 function batchStaticSection(parent) {
@@ -187,7 +188,8 @@ export function createAdminBuilding() {
 
   const frontOpenings = [{ x: -3.58, w: 2.7 }, { x: 0, w: 2.24, door: true, interactionId: 'entrance-door', doorLabel: 'Main entrance' }, { x: 3.58, w: 2.7 }];
   facade(frontGround, 12, 2.59, 0.16, frontOpenings, 0, -4, 0);
-  facade(frontUpper, 12, 2.67, 3.03, [{ x: -3.58, w: 2.7 }, { x: 3.58, w: 2.7 }], 0, -4, 0);
+  // A solid front office wall backs the storage cupboard and captain's chair.
+  facade(frontUpper, 12, 2.67, 3.03, [{ x: -3.58, w: 2.7 }], 0, -4, 0);
   facade(group, 12, 2.59, 0.16, [{ x: -3.7, w: 2.5 }, { x: 0, w: 1.6 }, { x: 3.7, w: 2.5 }], 0, 4, Math.PI);
   facade(upperFloor, 12, 2.67, 3.03, [{ x: -3.7, w: 2.5 }, { x: 0, w: 1.6 }, { x: 3.7, w: 2.5 }], 0, 4, Math.PI);
   facade(group, 8, 2.59, 0.16, [{ x: -2.05, w: 2.1 }, { x: 2.05, w: 2.1 }], -6, 0, Math.PI / 2);
@@ -198,12 +200,15 @@ export function createAdminBuilding() {
   facade(rightUpper, 8, 2.67, 3.03, [{ x: -2.9, w: 1.1, door: true, interactionId: 'annex-door', doorLabel: 'Second-floor wing door' }, { x: 2.05, w: 2.1 }], 6, 0, -Math.PI / 2);
 
   // Split second-floor slab leaves an actual opening over the stair flight.
-  box(upperFloor, 9.6, 0.17, 8.0, warmTile, -1.2, 2.945, 0);
-  box(upperFloor, 2.4, 0.17, 4.68, warmTile, 4.8, 2.945, -1.66);
-  box(upperFloor, 0.45, 0.17, 2.62, warmTile, 5.775, 2.945, 1.99);
-  box(upperFloor, 2.4, 0.17, 0.7, warmTile, 4.8, 2.945, 3.65);
-  floorGrid(upperFloor, 3.031, -5.9, 3.5, -3.9, 3.9);
-  floorGrid(upperFloor, 3.031, 3.65, 5.9, -3.9, 0.6);
+  const stairLeft = HALL_STAIRS.railLeft, stairRight = HALL_STAIRS.railRight;
+  const openingFront = HALL_STAIRS.openingFront, openingBack = HALL_STAIRS.topZ;
+  box(upperFloor, stairLeft + 6, 0.17, 8.0, warmTile, (stairLeft - 6) / 2, 2.945, 0);
+  box(upperFloor, 6 - stairLeft, 0.17, openingFront + 4, warmTile, (stairLeft + 6) / 2, 2.945, (openingFront - 4) / 2);
+  box(upperFloor, 6 - stairRight, 0.17, openingBack - openingFront, warmTile, (stairRight + 6) / 2, 2.945, (openingFront + openingBack) / 2);
+  box(upperFloor, 6 - stairLeft, 0.17, 4 - openingBack, warmTile, (stairLeft + 6) / 2, 2.945, (openingBack + 4) / 2);
+  floorGrid(upperFloor, 3.031, -5.9, stairLeft - 0.1, -3.9, 3.9);
+  floorGrid(upperFloor, 3.031, stairLeft + 0.1, 5.9, -3.9, openingFront - 0.1);
+  floorGrid(upperFloor, 3.031, stairLeft + 0.1, 5.9, openingBack + 0.1, 3.9);
   for (const z of [-4.05, 4.05]) box(upperFloor, 12.22, 0.2, 0.24, materials.green, 0, 2.83, z);
   for (const x of [-6.05, 6.05]) box(upperFloor, 0.24, 0.2, 8.24, materials.green, x, 2.83, 0);
   for (const x of [-5.85, 5.85]) for (const z of [-3.85, 3.85]) {
@@ -326,5 +331,5 @@ export function createAdminBuilding() {
     // Camera and cutaway controls preserve every manually chosen door state.
   }
   setView('overview');
-  return { group, roof, upperFloor, cutawayWalls, lights, setView, rooms, walkData, annex, captainFigure: interiors.captainFigure, interactions };
+  return { group, roof, upperFloor, cutawayWalls, lights, setView, rooms, walkData, annex, interactions };
 }

@@ -72,7 +72,8 @@ export function createInteractions({ camera, domElement, model, walkthrough, onT
       return false;
     }
     item.target = item.target === 1 ? 0 : 1;
-    onAction(`${item.target ? 'Opening' : 'Closing'} ${item.label.toLowerCase()}`);
+    item.onToggle?.(Boolean(item.target));
+    onAction(item.actionMessages?.[item.target] ?? `${item.target ? 'Opening' : 'Closing'} ${item.label.toLowerCase()}`);
     return true;
   }
 
@@ -80,7 +81,8 @@ export function createInteractions({ camera, domElement, model, walkthrough, onT
     current = walkthrough.active
       ? pick(!walkthrough.locked && pointerInside && !down ? pointer : center)
       : null;
-    const prompt = current ? `${current.target ? 'Close' : 'Open'} ${current.label}` : '';
+    const prompt = current ? (current.actionLabels?.[current.target ? 1 : 0]
+      ?? `${current.target ? 'Close' : 'Open'} ${current.label}`) : '';
     if (prompt !== lastPrompt) { lastPrompt = prompt; onTargetChange(current, prompt); }
     highlight.visible = Boolean(current);
     if (current) {
