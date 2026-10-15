@@ -327,6 +327,7 @@ export function createAdminBuilding() {
   group.add(interiors.groundFloor);
   upperFloor.add(interiors.upperFloor);
   const annex = createLeftAnnex();
+  interactions.push(...annex.interactions);
   group.add(annex.supports);
   upperFloor.add(annex.group);
   roof.add(annex.roof);

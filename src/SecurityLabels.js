@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import {HALL_STAIRS} from './models/HallLayout.js';
 
 const SVG='http://www.w3.org/2000/svg';
 const COLORS={surveillance:'#176f98',access:'#315eae',emergency:'#bd3549',egress:'#218265',storage:'#9b7023',barrier:'#596e83'};
@@ -12,7 +11,6 @@ export function createSecurityLabels({model,camera,cctv,emergency,security,acces
   const toggle=document.querySelector('#labels-toggle');
   const features=[];
   const anchor=(object,offset=[0,0,0])=>({object,offset:new THREE.Vector3(...offset)});
-  const fixed=position=>({position:new THREE.Vector3(...position)});
   const add=(floor,name,detail,type,anchors)=>{
     const number=features.filter(f=>f.floor===floor).length+1;
     features.push({id:`${floor+1}-${String(number).padStart(2,'0')}`,floor,number,name,detail,type,anchors});
@@ -32,9 +30,6 @@ export function createSecurityLabels({model,camera,cctv,emergency,security,acces
       const grilles=[];
       model.group.traverse(o=>{if(o.userData.windowGrille)grilles.push(anchor(o));});
       add(0,'Window security grilles','8 ground-floor windows','barrier',grilles);
-      add(0,'Stair safety rails','Clear route to the second floor','egress',[
-        fixed([HALL_STAIRS.railLeft,2.4,1.2]),fixed([HALL_STAIRS.railRight,2.4,1.2]),
-      ]);
       add(0,'Main-door motion sensor','Movement alert · virtual visitor','access',[anchor(motion.group)]);
     } else {
       add(1,'CCTV monitoring screen','Captain’s office · five live views','surveillance',[anchor(cctv.monitor.group,[0,0,0.06])]);
@@ -49,7 +44,6 @@ export function createSecurityLabels({model,camera,cctv,emergency,security,acces
       const cabinet=model.interactions.find(i=>i.id==='captain-records-lock');
       add(1,'Locked records cabinet','Captain’s office · demo key lock','storage',[anchor(cabinet.moving)]);
       add(1,'Red warning light','Second floor · emergency alert','emergency',[anchor(emergency.beacons[1].group)]);
-      add(1,'Stairwell safety rails','Guards the open stairwell','egress',[fixed([4.55,4.05,HALL_STAIRS.openingFront])]);
     }
   }
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { box, beam, cylinder, materials } from './primitives.js';
+import {createPrivateMeetingRoom} from './PrivateMeetingRoom.js';
 
 // Photo-inspired upper storey attached to the viewer's left (+X) when facing
 // the entrance at negative Z. The construction coordinates are mirrored on X.
@@ -112,28 +113,16 @@ export function createLeftAnnex() {
     for(let i=0;i<5;i++)box(roof,0.43,0.020,0.022,materials.wood,x,5.682,-4.095+i*0.076);
   }
 
-  // Neutral furnishings leave the new wing's purpose open while keeping it explorable.
-  box(group,1.8,0.085,0.85,materials.wood,-9.1,floorY+0.79,-0.45);
-  for(const x of [-9.85,-8.35])for(const z of [-0.75,-0.15])box(group,0.065,0.75,0.065,materials.dark,x,floorY+0.375,z);
-  box(group,0.26,0.03,0.34,soffit,-9.34,floorY+0.85,-0.46);
-  box(group,0.24,0.06,0.32,materials.green,-8.94,floorY+0.85,-0.36);
-  function chair(x,z,rotation=0) {
-    const g=new THREE.Group();g.position.set(x,floorY,z);g.rotation.y=rotation;group.add(g);
-    box(g,0.46,0.10,0.46,materials.green,0,0.46,0);
-    box(g,0.46,0.44,0.08,materials.green,0,0.72,0.19);
-    for(const dx of [-0.18,0.18])for(const dz of [-0.18,0.18])cylinder(g,0.021,0.021,0.42,materials.metal,dx,0.21,dz,6);
-    obstacle(x-0.25,x+0.25,z-0.27,z+0.27);
-  }
-  chair(-9.65,0.55);chair(-8.55,0.55);chair(-10.9,1.75,Math.PI/2);chair(-10.9,2.65,Math.PI/2);
-  obstacle(-10.0,-8.2,-0.88,-0.02);
+  const meeting=createPrivateMeetingRoom({parent:group,floorY,obstacle});
   obstacle(-11.49,-11.31,-3.8,3.8);obstacle(-11.4,-6.0,-3.89,-3.71);obstacle(-11.4,-6.0,3.71,3.89);
   obstacle(-6.09,-5.91,-3.8,-3.45);obstacle(-6.09,-5.91,-2.35,3.8);
   const glow=new THREE.MeshStandardMaterial({color:'#fff5dc',emissive:'#ffddb3',emissiveIntensity:0.3});
-  const fixture=cylinder(group,0.20,0.20,0.045,glow,centerX,5.535,0,20);fixture.userData.nightGlow=true;
+  const fixture=box(group,0.16,0.045,2.65,glow,centerX,5.43,0.35);fixture.userData.nightGlow=true;
+  for(const z of [-.65,1.35])cylinder(group,0.012,0.012,0.15,dark,centerX,5.52,z,8);
   const light=new THREE.PointLight('#ffe3bd',6,9,2);light.position.set(centerX,5.40,0);light.userData.dayIntensity=6;light.userData.nightIntensity=14;group.add(light);lights.push(light);
   group.scale.x=-1;supports.scale.x=-1;roof.scale.x=-1;
   const bounds={minX:5.99,maxX:11.1,minZ:-3.5,maxZ:3.5};
-  const room={id:'annex',name:'Left Second-Floor Wing',floor:1,position:[7.4,4.63,-2.9],yaw:-2.534,pitch:-0.10,description:'The pale blue upper wing sits above an open passage and connects to the main hall.',bounds};
+  const room={id:'annex',name:"Captain’s Private Meeting Room",floor:1,position:[7.4,4.63,-2.9],yaw:-2.76,pitch:-0.16,description:'A six-seat private meeting room in the left upper wing, with a presentation display, organized supplies and a clear entrance aisle.',bounds};
   const worldObstacles=obstacles.map(o=>({...o,minX:-o.maxX,maxX:-o.minX}));
-  return {group,supports,roof,frontWall,lights,room,obstacles:worldObstacles,bounds};
+  return {group,supports,roof,frontWall,lights,room,obstacles:worldObstacles,bounds,interactions:meeting.interactions};
 }
