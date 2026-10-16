@@ -12,6 +12,7 @@ import { createAccessControl } from './AccessControl.js';
 import { createSecurityLabels } from './SecurityLabels.js';
 import { createAlarmAudio } from './AlarmAudio.js';
 import { createEntranceMotion } from './EntranceMotion.js';
+import { createSmokeAlarm } from './SmokeAlarm.js';
 import './style.css';
 
 const parameters = { night:false, autoRotate:false, shadows:true, rooftops:true };
@@ -28,7 +29,7 @@ let renderer, scene, camera, controls, admin, walkthrough, interactions, cctv, e
 let actionTimer;
 let recordsViewer;
 let labels;
-let alarmAudio, motion;
+let alarmAudio, motion, smoke;
 let lastTime = 0;
 let ready = false;
 
@@ -254,9 +255,19 @@ function initialize() {
     if(!active) {
       security?.reset();
       motion?.reset();
+      smoke?.reset();
       document.querySelector('#emergency-banner strong').textContent='EMERGENCY ALERT';
     }
     cctv.invalidate();
+  }});
+  smoke=createSmokeAlarm({model:admin,onAlarm:detector=>{
+    emergency.setActive(true);
+    document.querySelector('#emergency-banner strong').textContent=`SMOKE ALERT · ${detector.name.toUpperCase()}`;
+    cctv.invalidate();
+  },onStatus:result=>{
+    document.querySelector('#smoke-status').textContent=result.message;
+    document.querySelector('#smoke-status').dataset.state=result.alarmed?'alert':result.testing?'testing':'ready';
+    document.querySelector('#smoke-test').disabled=result.testing||result.alarmed;
   }});
   motion=createEntranceMotion({model:admin,onMotion:()=>{
     if(!emergency.active) {
@@ -306,16 +317,15 @@ function initialize() {
     visitRoom(`rfid-${button.dataset.rfidReader}-entry`);
     document.querySelector('#rfid-controls').open=false;
   }));
-  document.querySelector('#rfid-controls').addEventListener('toggle',event=>{
-    document.body.classList.toggle('rfid-controls-open',event.currentTarget.open);
-    if(event.currentTarget.open) document.querySelector('#security-controls').open=false;
-  });
   document.querySelector('#security-item').addEventListener('change',event=>security.setCarriedItem(event.target.value));
   document.querySelector('#security-entrance').addEventListener('click',()=>enterHall());
   document.querySelector('#security-reset').addEventListener('click',()=>emergency.setActive(false));
-  document.querySelector('#security-controls').addEventListener('toggle',event=>{
-    document.body.classList.toggle('security-demo-open',event.currentTarget.open);
-    if(event.currentTarget.open) document.querySelector('#rfid-controls').open=false;
+  document.querySelector('#smoke-test').addEventListener('click',()=>smoke.test(document.querySelector('#smoke-detector').value));
+  document.querySelector('#smoke-reset').addEventListener('click',()=>emergency.setActive(false));
+  const demoPanels=[['rfid-controls','rfid-controls-open'],['security-controls','security-demo-open'],['smoke-controls','smoke-controls-open']];
+  for(const [id,className] of demoPanels)document.querySelector(`#${id}`).addEventListener('toggle',event=>{
+    document.body.classList.toggle(className,event.currentTarget.open);
+    if(event.currentTarget.open)for(const [other] of demoPanels)if(other!==id)document.querySelector(`#${other}`).open=false;
   });
   document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>selectView(button.dataset.view)));
   document.querySelectorAll('[data-room]').forEach(button=>button.addEventListener('click',()=>visitRoom(button.dataset.room)));
@@ -350,7 +360,7 @@ function initialize() {
   setLighting(false);
   selectView('overview',true);
   resize();
-  labels=createSecurityLabels({model:admin,camera,cctv,emergency,security,access,motion,getView:()=>activeView,
+  labels=createSecurityLabels({model:admin,camera,cctv,emergency,security,access,motion,smoke,getView:()=>activeView,
     onRequestFloor:()=>selectView(walkthrough.active&&walkthrough.floor===1?'session':'ground'),
     onFocus:point=>{
       transition=null;
@@ -361,7 +371,7 @@ function initialize() {
     onReset:()=>selectView(activeView,true),
   });
   ready=true;
-  window.bucana={scene,camera,renderer,controls,admin,walkthrough,interactions,cctv,emergency,security,access,labels,motion,alarmAudio,selectView,enterHall,visitRoom,setLighting,get view(){return activeView;},get settings(){return {...parameters};}};
+  window.bucana={scene,camera,renderer,controls,admin,walkthrough,interactions,cctv,emergency,security,access,labels,motion,alarmAudio,smoke,selectView,enterHall,visitRoom,setLighting,get view(){return activeView;},get settings(){return {...parameters};}};
   requestAnimationFrame(animate);
 }
 
@@ -412,6 +422,7 @@ function animate(time) {
   sky.position.copy(camera.position);
   security.update(time,walkthrough,camera);
   motion.update(time,walkthrough,camera);
+  smoke.update(time);
   renderer.render(scene,camera);
   labels.update(time);
   cctv.update(time,camera);

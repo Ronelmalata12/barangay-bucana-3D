@@ -203,14 +203,17 @@ body.night #scale-line { border-color:#c5d7ee; }
 .security-demo label { display:block; font-size:10px; margin:10px 0 5px; }
 .security-demo select,.security-demo button { display:block; width:100%; min-height:34px; font:inherit; border:1px solid #cbdced; border-radius:6px; background:#f5f9ff; color:#173c65; padding:7px 8px; margin-top:6px; }
 .security-demo button:hover { background:#e4effc; }
+.security-demo button:disabled { opacity:.55; cursor:wait; }
+#smoke-status[data-state='alert'] { color:#aa1729; font-weight:700; }
+#smoke-status[data-state='testing'] { color:#946019; font-weight:700; }
 .security-controls summary:focus-visible,.security-demo select:focus-visible { outline:3px solid #eaa721; outline-offset:2px; }
 #security-status[data-state='alert'] { color:#aa1729; font-weight:700; }
 #security-status[data-state='clear'] { color:#14724d; font-weight:700; }
 #rfid-status[data-state='denied'] { color:#aa1729; font-weight:700; }
 #rfid-status[data-state='granted'] { color:#14724d; font-weight:700; }
 @media (max-width:760px) {
-  body.walking.security-demo-open .explorer,body.walking.rfid-controls-open .explorer { overflow:auto; }
-  body.walking.security-demo-open #object-controls,body.walking.rfid-controls-open #object-controls { visibility:hidden; }
+  body.walking.security-demo-open .explorer,body.walking.rfid-controls-open .explorer,body.walking.smoke-controls-open .explorer { overflow:auto; }
+  body.walking.security-demo-open #object-controls,body.walking.rfid-controls-open #object-controls,body.walking.smoke-controls-open #object-controls { visibility:hidden; }
 }
 .labels-toggle { display:flex; align-items:center; justify-content:center; gap:7px; height:46px; padding:10px 13px; border:1px solid white; border-radius:11px; background:var(--panel); color:#315d8e; font-size:12px; }
 .labels-toggle svg { width:18px; height:18px; }

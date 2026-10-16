@@ -76,6 +76,18 @@
             <p id="security-status" role="status" aria-live="polite">Choose a test item, then walk through the arch.</p>
           </div>
         </details>
+        <details id="smoke-controls" class="security-controls">
+          <summary>Smoke alarm <span>DEMO</span></summary>
+          <div class="security-demo">
+            <p>Ceiling detectors cover the first floor, Session Hall and private meeting room in this model.</p>
+            <label for="smoke-detector">Smoke detector to test</label>
+            <select id="smoke-detector"><option value="ground">First floor</option><option value="session">Session Hall</option><option value="meeting">Private meeting room</option></select>
+            <button id="smoke-test" type="button">Test smoke detector</button>
+            <button id="smoke-reset" type="button">Reset emergency alarm</button>
+            <p id="smoke-status" role="status" aria-live="polite">All smoke detectors are ready.</p>
+            <p>Testing simulates smoke detection and activates the shared siren and both floors’ warning lights. You can also click a ceiling detector or aim and press E. No real smoke sensor is connected.</p>
+          </div>
+        </details>
         <div class="settings-section"><button id="settings-toggle" type="button" aria-expanded="false" aria-controls="gui-container"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6M10 15v6" /></svg><span>View settings</span><span id="settings-chevron" aria-hidden="true">+</span></button><div id="gui-container" hidden></div></div>
       </aside>
       <section id="security-annotations" hidden aria-label="Security feature callouts" role="list"></section>

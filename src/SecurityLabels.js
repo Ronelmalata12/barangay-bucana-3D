@@ -4,7 +4,7 @@ const SVG='http://www.w3.org/2000/svg';
 const COLORS={surveillance:'#176f98',access:'#315eae',emergency:'#bd3549',egress:'#218265',storage:'#9b7023',barrier:'#596e83'};
 
 /** Screen-space callouts anchored to the actual 3D equipment in each floor view. */
-export function createSecurityLabels({model,camera,cctv,emergency,security,access,motion,getView,onRequestFloor,onFocus,onReset}) {
+export function createSecurityLabels({model,camera,cctv,emergency,security,access,motion,smoke,getView,onRequestFloor,onFocus,onReset}) {
   const layer=document.querySelector('#security-annotations');
   const toolbar=document.querySelector('#annotation-toolbar');
   const select=document.querySelector('#annotation-feature');
@@ -45,6 +45,7 @@ export function createSecurityLabels({model,camera,cctv,emergency,security,acces
       add(1,'Locked records cabinet','Captain’s office · demo key lock','storage',[anchor(cabinet.moving)]);
       add(1,'Red warning light','Second floor · emergency alert','emergency',[anchor(emergency.beacons[1].group)]);
     }
+    for(const detector of smoke.detectors.filter(d=>d.floor===floor))add(floor,'Smoke detector',detector.name+' · press to test','emergency',[anchor(detector.group)]);
   }
 
   const svg=document.createElementNS(SVG,'svg');
